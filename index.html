@@ -72,6 +72,65 @@ tr:hover{background:#f5f7ff}
 .map-filters{display:flex;gap:10px;padding:12px 20px;border-bottom:1px solid #eee;align-items:center;flex-wrap:wrap}
 .map-filters label{font-size:.8rem;font-weight:600;color:#555}
 .map-filters select{padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:.85rem}
+/* To-Do List - Franklin Covey */
+.todo-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eee;flex-wrap:wrap;gap:10px}
+.todo-date-nav{display:flex;align-items:center;gap:8px}
+.todo-date-nav input[type=date]{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:.95rem;font-weight:600;color:#1a237e}
+.todo-nav-btn{background:#f0f2f5;border:1px solid #ddd;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:.9rem;font-weight:600;color:#555;transition:all .2s}
+.todo-nav-btn:hover{background:#e3e6f0;border-color:#1a237e;color:#1a237e}
+.today-btn{background:#1a237e;color:#fff;border-color:#1a237e}
+.today-btn:hover{background:#0d47a1}
+.todo-actions{display:flex;gap:8px}
+.todo-add-btn{background:#27ae60;color:#fff;border:none;border-radius:6px;padding:8px 18px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s}
+.todo-add-btn:hover{background:#219a52}
+.todo-fwd-btn{background:#f39c12;color:#fff;border:none;border-radius:6px;padding:8px 14px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s}
+.todo-fwd-btn:hover{background:#d68910}
+.todo-legend-bar{display:flex;gap:14px;padding:10px 20px;background:#f8f9fc;border-bottom:1px solid #eee;font-size:.78rem;color:#666;flex-wrap:wrap;align-items:center}
+.tl-item{display:flex;align-items:center;gap:4px}
+.tl-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;font-size:.7rem;font-weight:700;color:#fff}
+.tl-vital{background:#c0392b}
+.tl-important{background:#2980b9}
+.tl-nice{background:#27ae60}
+.tl-sep{color:#ccc;margin:0 4px}
+.ts-icon{font-weight:700;font-size:.85rem}
+.ts-done{color:#27ae60}
+.ts-progress{color:#2980b9}
+.ts-fwd{color:#f39c12}
+.ts-cancel{color:#e74c3c}
+.todo-sections{padding:12px 20px}
+.todo-section{margin-bottom:16px}
+.todo-section-header{font-weight:700;font-size:.85rem;padding:8px 14px;border-radius:6px;margin-bottom:6px;color:#fff}
+.vital-header{background:linear-gradient(135deg,#c0392b,#e74c3c)}
+.important-header{background:linear-gradient(135deg,#2471a3,#2980b9)}
+.nice-header{background:linear-gradient(135deg,#1e8449,#27ae60)}
+.todo-list{min-height:36px}
+.todo-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #eee;border-radius:6px;margin-bottom:4px;background:#fff;transition:all .2s}
+.todo-item:hover{box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.todo-item.status-done{opacity:.6;text-decoration:line-through}
+.todo-item.status-fwd{opacity:.5;font-style:italic}
+.todo-item.status-cancel{opacity:.4;text-decoration:line-through}
+.todo-pri{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-size:.75rem;font-weight:800;color:#fff;flex-shrink:0}
+.todo-pri-a{background:#c0392b}
+.todo-pri-b{background:#2980b9}
+.todo-pri-c{background:#27ae60}
+.todo-status-btn{width:28px;height:28px;border-radius:50%;border:2px solid #ddd;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0;transition:all .2s}
+.todo-status-btn:hover{border-color:#1a237e;background:#f5f7ff}
+.todo-status-btn.s-done{border-color:#27ae60;color:#27ae60;background:#e8f5e9}
+.todo-status-btn.s-progress{border-color:#2980b9;color:#2980b9;background:#e3f2fd}
+.todo-status-btn.s-fwd{border-color:#f39c12;color:#f39c12;background:#fff8e1}
+.todo-status-btn.s-cancel{border-color:#e74c3c;color:#e74c3c;background:#fce4ec}
+.todo-text{flex:1;font-size:.9rem;padding:4px 8px;border:none;border-bottom:1px solid transparent;background:none;outline:none;color:#333}
+.todo-text:focus{border-bottom:1px solid #1a237e}
+.todo-del-btn{background:none;border:none;cursor:pointer;color:#ccc;font-size:1rem;padding:4px;transition:color .2s}
+.todo-del-btn:hover{color:#e74c3c}
+.todo-daily-notes{padding:12px 20px 20px}
+.todo-daily-notes label{font-size:.8rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.todo-daily-notes textarea{width:100%;min-height:80px;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem;font-family:inherit;resize:vertical;outline:none}
+.todo-daily-notes textarea:focus{border-color:#1a237e}
+@media(max-width:768px){
+  .todo-header{flex-direction:column}
+  .todo-legend-bar{gap:8px;font-size:.7rem}
+}
 /* Login screen */
 .login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a237e,#0d47a1)}
 .login-box{background:#fff;border-radius:16px;padding:50px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:400px;width:90%}
@@ -131,6 +190,7 @@ tr:hover{background:#f5f7ff}
     <button class="tab" onclick="switchTab('map')">Map View</button>
     <button class="tab" onclick="switchTab('rms')">Regional Managers</button>
     <button class="tab" onclick="switchTab('investigators')">CLP Investigators</button>
+    <button class="tab" onclick="switchTab('todo')">To-Do List</button>
   </div>
   <div id="stores-panel" class="panel active">
     <div class="filters">
@@ -170,6 +230,48 @@ tr:hover{background:#f5f7ff}
   </div>
   <div id="rms-panel" class="panel"><div class="contact-grid" id="rmsGrid"></div></div>
   <div id="investigators-panel" class="panel"><div class="contact-grid" id="invGrid"></div></div>
+  <div id="todo-panel" class="panel">
+    <div class="todo-header">
+      <div class="todo-date-nav">
+        <button class="todo-nav-btn" onclick="todoChangeDate(-1)">&larr;</button>
+        <input type="date" id="todoDate" onchange="todoLoadDay()">
+        <button class="todo-nav-btn" onclick="todoChangeDate(1)">&rarr;</button>
+        <button class="todo-nav-btn today-btn" onclick="todoGoToday()">Today</button>
+      </div>
+      <div class="todo-actions">
+        <button class="todo-add-btn" onclick="todoAddTask()">+ Add Task</button>
+        <button class="todo-fwd-btn" onclick="todoForwardAll()">Forward Incomplete &rarr;</button>
+      </div>
+    </div>
+    <div class="todo-legend-bar">
+      <span class="tl-item"><span class="tl-icon tl-vital">A</span> Vital</span>
+      <span class="tl-item"><span class="tl-icon tl-important">B</span> Important</span>
+      <span class="tl-item"><span class="tl-icon tl-nice">C</span> Nice to Do</span>
+      <span class="tl-sep">|</span>
+      <span class="tl-item"><span class="ts-icon ts-done">&#10003;</span> Done</span>
+      <span class="tl-item"><span class="ts-icon ts-progress">&#9679;</span> In Progress</span>
+      <span class="tl-item"><span class="ts-icon ts-fwd">&#8594;</span> Forwarded</span>
+      <span class="tl-item"><span class="ts-icon ts-cancel">&#10007;</span> Cancelled</span>
+    </div>
+    <div class="todo-sections">
+      <div class="todo-section" id="todoSectionA">
+        <div class="todo-section-header vital-header">A - Vital (Must Do)</div>
+        <div class="todo-list" id="todoListA"></div>
+      </div>
+      <div class="todo-section" id="todoSectionB">
+        <div class="todo-section-header important-header">B - Important (Should Do)</div>
+        <div class="todo-list" id="todoListB"></div>
+      </div>
+      <div class="todo-section" id="todoSectionC">
+        <div class="todo-section-header nice-header">C - Nice to Do (Could Do)</div>
+        <div class="todo-list" id="todoListC"></div>
+      </div>
+    </div>
+    <div class="todo-daily-notes">
+      <label>Daily Notes</label>
+      <textarea id="todoDailyNotes" placeholder="Notes for the day..." oninput="todoSaveDay()"></textarea>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -237,7 +339,7 @@ function initApp(){
   populateFilter("fClp","clp_region");populateFilter("fClass","class");
   populateFilter("fInv","investigator");populateMapFilters();
   document.getElementById("countTotal").textContent=stores.length;
-  renderStores();renderRMs();renderInvestigators();buildLegend();
+  renderStores();renderRMs();renderInvestigators();buildLegend();todoInit();
   document.getElementById("globalSearch").addEventListener("input",renderStores);
   document.querySelectorAll(".filters select").forEach(s=>s.addEventListener("change",renderStores));
   document.getElementById("mapInvFilter").addEventListener("change",renderMap);
@@ -339,6 +441,125 @@ function renderRMs(){
 function renderInvestigators(){
   document.getElementById("invGrid").innerHTML=investigators.map(r=>`<div class="contact-card"><div class="card-name">${r.investigator}</div><div class="card-role">CLP Region ${r.clp_region}</div><div class="card-detail">${r.phone&&r.phone!=="nan"?"&#128222; "+r.phone:""}</div><div class="card-detail">${r.email&&r.email!=="nan"?"&#9993; "+r.email:""}</div></div>`).join("");
 }
+
+// ========== Franklin Covey To-Do System ==========
+const TODO_KEY = 'bcls_todo_';
+const STATUSES = ['','progress','done','fwd','cancel'];
+const STATUS_ICONS = {'':'','progress':'\u25CF','done':'\u2713','fwd':'\u2192','cancel':'\u2717'};
+const STATUS_CLASS = {'':'','progress':'s-progress','done':'s-done','fwd':'s-fwd','cancel':'s-cancel'};
+const ITEM_CLASS = {'':'','progress':'','done':'status-done','fwd':'status-fwd','cancel':'status-cancel'};
+
+function todoGetDate(){return document.getElementById('todoDate').value}
+function todoSetDate(d){document.getElementById('todoDate').value=d;todoLoadDay()}
+function todoGoToday(){todoSetDate(new Date().toISOString().slice(0,10))}
+function todoChangeDate(delta){
+  const d=new Date(todoGetDate());d.setDate(d.getDate()+delta);
+  todoSetDate(d.toISOString().slice(0,10));
+}
+function todoGetData(date){
+  const raw=localStorage.getItem(TODO_KEY+date);
+  return raw?JSON.parse(raw):{tasks:[],notes:''};
+}
+function todoSaveDay(){
+  const date=todoGetDate();
+  const tasks=[];
+  ['A','B','C'].forEach(pri=>{
+    const list=document.getElementById('todoList'+pri);
+    list.querySelectorAll('.todo-item').forEach((item,i)=>{
+      tasks.push({
+        id:item.dataset.id,
+        pri:pri,
+        num:i+1,
+        text:item.querySelector('.todo-text').value,
+        status:item.dataset.status||''
+      });
+    });
+  });
+  const notes=document.getElementById('todoDailyNotes').value;
+  localStorage.setItem(TODO_KEY+date,JSON.stringify({tasks,notes}));
+}
+function todoLoadDay(){
+  const data=todoGetData(todoGetDate());
+  ['A','B','C'].forEach(pri=>{document.getElementById('todoList'+pri).innerHTML=''});
+  data.tasks.forEach(t=>todoRenderItem(t));
+  document.getElementById('todoDailyNotes').value=data.notes||'';
+}
+function todoRenderItem(t){
+  const list=document.getElementById('todoList'+t.pri);
+  const div=document.createElement('div');
+  div.className='todo-item '+(ITEM_CLASS[t.status]||'');
+  div.dataset.id=t.id;
+  div.dataset.status=t.status||'';
+  div.innerHTML=`
+    <span class="todo-pri todo-pri-${t.pri.toLowerCase()}">${t.pri}${t.num}</span>
+    <button class="todo-status-btn ${STATUS_CLASS[t.status]||''}" onclick="todoCycleStatus(this)" title="Click to change status">${STATUS_ICONS[t.status]||''}</button>
+    <input class="todo-text" value="${(t.text||'').replace(/"/g,'&quot;')}" placeholder="Enter task..." oninput="todoSaveDay()" onfocus="this.select()">
+    <button class="todo-del-btn" onclick="todoDeleteItem(this)" title="Delete">&times;</button>
+  `;
+  list.appendChild(div);
+}
+function todoAddTask(){
+  const pri=prompt('Priority? Enter A (Vital), B (Important), or C (Nice to do):','A');
+  if(!pri)return;
+  const p=pri.toUpperCase().trim();
+  if(!['A','B','C'].includes(p)){alert('Please enter A, B, or C');return;}
+  const list=document.getElementById('todoList'+p);
+  const num=list.querySelectorAll('.todo-item').length+1;
+  const id=Date.now().toString(36);
+  todoRenderItem({id,pri:p,num,text:'',status:''});
+  todoSaveDay();
+  list.lastChild.querySelector('.todo-text').focus();
+}
+function todoCycleStatus(btn){
+  const item=btn.closest('.todo-item');
+  const cur=item.dataset.status||'';
+  const idx=STATUSES.indexOf(cur);
+  const next=STATUSES[(idx+1)%STATUSES.length];
+  item.dataset.status=next;
+  item.className='todo-item '+(ITEM_CLASS[next]||'');
+  btn.className='todo-status-btn '+(STATUS_CLASS[next]||'');
+  btn.textContent=STATUS_ICONS[next]||'';
+  todoSaveDay();
+}
+function todoDeleteItem(btn){
+  if(!confirm('Delete this task?'))return;
+  btn.closest('.todo-item').remove();
+  todoRenumber();todoSaveDay();
+}
+function todoRenumber(){
+  ['A','B','C'].forEach(pri=>{
+    const list=document.getElementById('todoList'+pri);
+    list.querySelectorAll('.todo-item').forEach((item,i)=>{
+      item.querySelector('.todo-pri').textContent=pri+(i+1);
+    });
+  });
+}
+function todoForwardAll(){
+  const date=todoGetDate();
+  const data=todoGetData(date);
+  const incomplete=data.tasks.filter(t=>t.status===''||t.status==='progress');
+  if(!incomplete.length){alert('No incomplete tasks to forward.');return;}
+  const next=new Date(date);next.setDate(next.getDate()+1);
+  const nextDate=next.toISOString().slice(0,10);
+  const nextData=todoGetData(nextDate);
+  incomplete.forEach(t=>{
+    // Mark as forwarded on current day
+    t.status='fwd';
+    // Add to next day
+    const existing=nextData.tasks.filter(x=>x.pri===t.pri);
+    nextData.tasks.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),pri:t.pri,num:existing.length+1,text:t.text,status:''});
+  });
+  // Save both days
+  localStorage.setItem(TODO_KEY+date,JSON.stringify(data));
+  localStorage.setItem(TODO_KEY+nextDate,JSON.stringify(nextData));
+  todoLoadDay();
+  alert(incomplete.length+' task(s) forwarded to '+nextDate);
+}
+function todoInit(){
+  document.getElementById('todoDate').value=new Date().toISOString().slice(0,10);
+  todoLoadDay();
+}
+
 function switchTab(name){
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
