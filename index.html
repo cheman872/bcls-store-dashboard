@@ -137,6 +137,30 @@ tr:hover{background:#f5f7ff}
   .todo-header{flex-direction:column}
   .todo-legend-bar{gap:8px;font-size:.7rem}
 }
+/* Mini Calendar */
+.todo-body{display:flex;gap:16px;padding:12px 20px;flex-wrap:wrap}
+.todo-calendars{display:flex;gap:12px;flex-shrink:0;flex-direction:column}
+.mini-cal{background:#f8f9fc;border:1px solid #e8e8e8;border-radius:8px;padding:10px 12px;width:220px}
+.mini-cal-title{text-align:center;font-weight:700;font-size:.8rem;color:#1a237e;margin-bottom:6px;text-transform:uppercase}
+.mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center;font-size:.72rem}
+.mini-cal-dow{font-weight:700;color:#888;padding:3px 0;font-size:.65rem}
+.mini-cal-day{padding:4px 2px;border-radius:4px;cursor:pointer;transition:all .15s;color:#333}
+.mini-cal-day:hover{background:#d5d8f0}
+.mini-cal-day.other-month{color:#ccc}
+.mini-cal-day.today{background:#1a237e;color:#fff;font-weight:700}
+.mini-cal-day.selected{background:#2980b9;color:#fff;font-weight:700}
+.mini-cal-day.has-tasks{font-weight:700;position:relative}
+.mini-cal-day.has-tasks::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#e74c3c}
+.mini-cal-day.today.has-tasks::after,.mini-cal-day.selected.has-tasks::after{background:#fff}
+.todo-main{flex:1;min-width:0}
+@media(max-width:900px){
+  .todo-body{flex-direction:column}
+  .todo-calendars{flex-direction:row}
+  .mini-cal{width:180px}
+}
+@media(max-width:600px){
+  .todo-calendars{flex-direction:column;align-items:center}
+}
 /* Login screen */
 .login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a237e,#0d47a1)}
 .login-box{background:#fff;border-radius:16px;padding:50px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:400px;width:90%}
@@ -259,23 +283,31 @@ tr:hover{background:#f5f7ff}
       <span class="tl-item"><span class="ts-icon ts-fwd">&#8594;</span> Forwarded</span>
       <span class="tl-item"><span class="ts-icon ts-cancel">&#10007;</span> Cancelled</span>
     </div>
-    <div class="todo-sections">
-      <div class="todo-section" id="todoSectionA">
-        <div class="todo-section-header vital-header">A - Vital (Must Do)</div>
-        <div class="todo-list" id="todoListA"></div>
+    <div class="todo-body">
+      <div class="todo-calendars">
+        <div class="mini-cal" id="calCurrent"></div>
+        <div class="mini-cal" id="calNext"></div>
       </div>
-      <div class="todo-section" id="todoSectionB">
-        <div class="todo-section-header important-header">B - Important (Should Do)</div>
-        <div class="todo-list" id="todoListB"></div>
+      <div class="todo-main">
+        <div class="todo-sections">
+          <div class="todo-section" id="todoSectionA">
+            <div class="todo-section-header vital-header">A - Vital (Must Do)</div>
+            <div class="todo-list" id="todoListA"></div>
+          </div>
+          <div class="todo-section" id="todoSectionB">
+            <div class="todo-section-header important-header">B - Important (Should Do)</div>
+            <div class="todo-list" id="todoListB"></div>
+          </div>
+          <div class="todo-section" id="todoSectionC">
+            <div class="todo-section-header nice-header">C - Nice to Do (Could Do)</div>
+            <div class="todo-list" id="todoListC"></div>
+          </div>
+        </div>
+        <div class="todo-daily-notes">
+          <label>Daily Notes</label>
+          <textarea id="todoDailyNotes" placeholder="Notes for the day..." oninput="todoSaveDay()"></textarea>
+        </div>
       </div>
-      <div class="todo-section" id="todoSectionC">
-        <div class="todo-section-header nice-header">C - Nice to Do (Could Do)</div>
-        <div class="todo-list" id="todoListC"></div>
-      </div>
-    </div>
-    <div class="todo-daily-notes">
-      <label>Daily Notes</label>
-      <textarea id="todoDailyNotes" placeholder="Notes for the day..." oninput="todoSaveDay()"></textarea>
     </div>
   </div>
 </div>
@@ -481,6 +513,7 @@ async function todoLoadDay(){
       document.getElementById('todoDailyNotes').value='';
     }
   }catch(e){console.error('Load error:',e)}
+  renderCalendars();
 }
 
 async function todoSaveDay(){
@@ -502,6 +535,9 @@ async function todoSaveDay(){
   const notes=document.getElementById('todoDailyNotes').value;
   try{
     await todoCollection().doc(date).set({tasks,notes,updated:firebase.firestore.FieldValue.serverTimestamp()});
+    const key=date.slice(0,7);
+    delete calTaskDays[key];
+    renderCalendars();
   }catch(e){console.error('Save error:',e)}
 }
 
@@ -599,10 +635,94 @@ async function todoForwardAll(){
   alert(incomplete.length+' task(s) forwarded to '+nextDate);
 }
 
+
+// ========== Mini Calendar ==========
+const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW=['Su','Mo','Tu','We','Th','Fr','Sa'];
+let calTaskDays={};
+
+async function calLoadTaskDays(year,month){
+  // Load which days in this month have tasks
+  const key=year+'-'+String(month+1).padStart(2,'0');
+  if(calTaskDays[key])return calTaskDays[key];
+  const days=new Set();
+  try{
+    const snap=await todoCollection().where(firebase.firestore.FieldPath.documentId(),'>=',key+'-01')
+      .where(firebase.firestore.FieldPath.documentId(),'<=',key+'-31').get();
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(d.tasks&&d.tasks.length>0)days.add(doc.id);
+    });
+  }catch(e){console.error('Cal load error:',e)}
+  calTaskDays[key]=days;
+  return days;
+}
+
+async function renderMiniCal(containerId,year,month){
+  const container=document.getElementById(containerId);
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=today.toISOString().slice(0,10);
+  const selectedStr=todoGetDate();
+  const taskDays=await calLoadTaskDays(year,month);
+
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const prevDays=new Date(year,month,0).getDate();
+
+  let html='<div class="mini-cal-title">'+MONTH_NAMES[month]+' '+year+'</div>';
+  html+='<div class="mini-cal-grid">';
+  DOW.forEach(d=>{html+='<div class="mini-cal-dow">'+d+'</div>'});
+
+  // Previous month filler
+  for(let i=firstDay-1;i>=0;i--){
+    const pm=month===0?11:month-1;
+    const py=month===0?year-1:year;
+    const day=prevDays-i;
+    const ds=py+'-'+String(pm+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    html+='<div class="mini-cal-day other-month" onclick="calClickDay(''+ds+'')">'+day+'</div>';
+  }
+  // Current month
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    let cls='mini-cal-day';
+    if(ds===todayStr)cls+=' today';
+    if(ds===selectedStr)cls+=' selected';
+    if(taskDays.has(ds))cls+=' has-tasks';
+    html+='<div class="'+cls+'" onclick="calClickDay(''+ds+'')">'+d+'</div>';
+  }
+  // Next month filler
+  const totalCells=firstDay+daysInMonth;
+  const remaining=totalCells%7===0?0:7-totalCells%7;
+  for(let d=1;d<=remaining;d++){
+    const nm=month===11?0:month+1;
+    const ny=month===11?year+1:year;
+    const ds=ny+'-'+String(nm+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    html+='<div class="mini-cal-day other-month" onclick="calClickDay(''+ds+'')">'+d+'</div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+function calClickDay(dateStr){
+  todoSetDate(dateStr);
+  renderCalendars();
+}
+
+function renderCalendars(){
+  const sel=new Date(todoGetDate());
+  const curMonth=sel.getMonth();
+  const curYear=sel.getFullYear();
+  const nextMonth=curMonth===11?0:curMonth+1;
+  const nextYear=curMonth===11?curYear+1:curYear;
+  renderMiniCal('calCurrent',curYear,curMonth);
+  renderMiniCal('calNext',nextYear,nextMonth);
+}
+
 function todoInit(){
   currentUserId=auth.currentUser.uid;
   document.getElementById('todoDate').value=new Date().toISOString().slice(0,10);
   todoLoadDay();
+  renderCalendars();
 }
 
 function switchTab(name){
