@@ -194,6 +194,7 @@ tr:hover{background:#f5f7ff}
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
       Sign in with Google
     </button>
+    <p id="loginError" style="color:#c00;font-size:.8rem;margin-top:12px;min-height:1.2em"></p>
   </div>
 </div>
 
@@ -337,7 +338,15 @@ const db = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 function signInWithGoogle(){
-  auth.signInWithRedirect(provider);
+  var errDiv=document.getElementById("loginError");
+  if(errDiv)errDiv.textContent="Signing in...";
+  auth.signInWithPopup(provider).then(function(result){
+    if(errDiv)errDiv.textContent="";
+  }).catch(function(err){
+    console.error("Popup error:",err);
+    if(errDiv)errDiv.textContent="Popup blocked. Trying redirect...";
+    auth.signInWithRedirect(provider);
+  });
 }
 function signOutUser(){
   auth.signOut();
