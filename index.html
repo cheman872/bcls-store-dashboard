@@ -202,8 +202,15 @@ function signOutUser(){
   auth.signOut();
 }
 
+const ALLOWED_EMAIL = "aman@getfireplan.com";
+
 auth.onAuthStateChanged(user=>{
   if(user){
+    if(user.email.toLowerCase() !== ALLOWED_EMAIL){
+      auth.signOut();
+      alert("Access denied. This dashboard is restricted to authorized users only.");
+      return;
+    }
     document.getElementById("loginScreen").style.display="none";
     document.getElementById("appContent").style.display="block";
     document.getElementById("userPhoto").src=user.photoURL||"";
