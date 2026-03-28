@@ -337,7 +337,7 @@ const db = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 function signInWithGoogle(){
-  auth.signInWithPopup(provider).catch(err=>alert("Sign-in error: "+err.message));
+  auth.signInWithRedirect(provider);
 }
 function signOutUser(){
   auth.signOut();
