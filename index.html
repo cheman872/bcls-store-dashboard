@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BCLS Store Directory Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#1a1a2e}
+.header{background:linear-gradient(135deg,#1a237e,#0d47a1);color:#fff;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.header h1{font-size:1.4rem;font-weight:600}
+.header .subtitle{opacity:.8;font-size:.85rem}
+.search-bar{display:flex;align-items:center;background:rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;gap:8px;min-width:300px}
+.search-bar input{background:none;border:none;color:#fff;font-size:.95rem;width:100%;outline:none}
+.search-bar input::placeholder{color:rgba(255,255,255,.6)}
+.search-icon{font-size:1.1rem}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+.tabs{display:flex;gap:4px;margin-bottom:16px}
+.tab{padding:10px 20px;background:#fff;border:none;border-radius:8px 8px 0 0;cursor:pointer;font-size:.9rem;font-weight:500;color:#555;transition:all .2s}
+.tab.active{background:#1a237e;color:#fff}
+.tab:hover:not(.active){background:#e3e6f0}
+.panel{display:none;background:#fff;border-radius:0 8px 8px 8px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
+.panel.active{display:block}
+.filters{display:flex;gap:10px;padding:16px 20px;flex-wrap:wrap;border-bottom:1px solid #eee;align-items:center}
+.filter-group{display:flex;flex-direction:column;gap:3px}
+.filter-group label{font-size:.7rem;text-transform:uppercase;color:#888;font-weight:600;letter-spacing:.5px}
+.filter-group select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:.85rem;background:#fff;min-width:140px}
+.stats{display:flex;gap:16px;padding:12px 20px;background:#f8f9fc;border-bottom:1px solid #eee;font-size:.85rem;color:#555;flex-wrap:wrap}
+.stat{font-weight:600;color:#1a237e}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+thead{background:#f8f9fc;position:sticky;top:0;z-index:1}
+th{text-align:left;padding:12px 14px;font-weight:600;color:#444;border-bottom:2px solid #e0e0e0;cursor:pointer;white-space:nowrap;user-select:none}
+th:hover{color:#1a237e}
+th .sort-arrow{margin-left:4px;opacity:.3;font-size:.7rem}
+th.sorted .sort-arrow{opacity:1;color:#1a237e}
+td{padding:10px 14px;border-bottom:1px solid #f0f0f0}
+tr:hover{background:#f5f7ff}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600}
+.badge-a{background:#e8f5e9;color:#2e7d32}
+.badge-b{background:#e3f2fd;color:#1565c0}
+.badge-c{background:#fff3e0;color:#e65100}
+.badge-sig{background:#fce4ec;color:#c62828}
+.contact-card{display:inline-flex;flex-direction:column;background:#f8f9fc;border:1px solid #e8e8e8;border-radius:8px;padding:14px 18px;margin:8px;min-width:260px}
+.contact-card .card-name{font-weight:600;font-size:1rem;color:#1a237e;margin-bottom:4px}
+.contact-card .card-role{font-size:.8rem;color:#888;margin-bottom:8px}
+.contact-card .card-detail{font-size:.85rem;color:#444;margin:2px 0}
+.contact-grid{display:flex;flex-wrap:wrap;padding:20px}
+.detail-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.detail-modal.show{display:flex}
+.detail-content{background:#fff;border-radius:12px;padding:30px;max-width:520px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);position:relative}
+.detail-content h2{color:#1a237e;margin-bottom:16px;font-size:1.2rem}
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0}
+.detail-row .label{color:#888;font-size:.85rem}
+.detail-row .value{font-weight:500;font-size:.85rem;text-align:right}
+.close-btn{position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999}
+.close-btn:hover{color:#333}
+.no-results{padding:40px;text-align:center;color:#999;font-size:1rem}
+.table-wrap{max-height:65vh;overflow-y:auto}
+#mapContainer{height:70vh;width:100%}
+.map-legend{position:absolute;bottom:30px;right:10px;background:#fff;padding:14px 18px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:500;font-size:.85rem;line-height:1.8}
+.map-legend h4{margin-bottom:6px;color:#1a237e;font-size:.9rem}
+.legend-item{display:flex;align-items:center;gap:8px}
+.legend-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.2)}
+.map-filters{display:flex;gap:10px;padding:12px 20px;border-bottom:1px solid #eee;align-items:center;flex-wrap:wrap}
+.map-filters label{font-size:.8rem;font-weight:600;color:#555}
+.map-filters select{padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:.85rem}
+@media(max-width:768px){
+  .header{padding:14px}
+  .header h1{font-size:1.1rem}
+  .search-bar{min-width:200px;width:100%}
+  .filters,.map-filters{gap:6px}
+  .filter-group select,.map-filters select{min-width:110px;font-size:.8rem}
+  table{font-size:.78rem}
+  td,th{padding:8px 6px}
+  #mapContainer{height:55vh}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>BCLS CLP Store Directory</h1>
+    <div class="subtitle">Region Breakdown & Investigator Assignments - August 2025</div>
+  </div>
+  <div class="search-bar">
+    <span class="search-icon">&#128269;</span>
+    <input type="text" id="globalSearch" placeholder="Search store #, name, city, investigator..." autofocus>
+  </div>
+</div>
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('stores')">Store Directory</button>
+    <button class="tab" onclick="switchTab('map')">Map View</button>
+    <button class="tab" onclick="switchTab('rms')">Regional Managers</button>
+    <button class="tab" onclick="switchTab('investigators')">CLP Investigators</button>
+  </div>
+
+  <div id="stores-panel" class="panel active">
+    <div class="filters">
+      <div class="filter-group"><label>Geo Region</label><select id="fGeo"><option value="">All</option></select></div>
+      <div class="filter-group"><label>BCLS Region</label><select id="fBcls"><option value="">All</option></select></div>
+      <div class="filter-group"><label>CLP Region</label><select id="fClp"><option value="">All</option></select></div>
+      <div class="filter-group"><label>Class</label><select id="fClass"><option value="">All</option></select></div>
+      <div class="filter-group"><label>Investigator</label><select id="fInv"><option value="">All</option></select></div>
+    </div>
+    <div class="stats" id="statsBar">Showing <span class="stat" id="countShown">0</span> of <span class="stat" id="countTotal">0</span> stores</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th data-col="store_num" class="sorted">Store # <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="name">Name <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="class">Class <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="city">City <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="bcls_region">BCLS Region <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="bcls_regional_mgr">Regional Mgr <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="clp_region">CLP Region <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="investigator">Investigator <span class="sort-arrow">&#9650;</span></th>
+          <th data-col="geo_region">Geo Region <span class="sort-arrow">&#9650;</span></th>
+        </tr></thead>
+        <tbody id="storeBody"></tbody>
+      </table>
+      <div class="no-results" id="noResults" style="display:none">No stores match your filters.</div>
+    </div>
+  </div>
+
+  <div id="map-panel" class="panel">
+    <div class="map-filters">
+      <label>Filter by Investigator:</label>
+      <select id="mapInvFilter"><option value="">All Investigators</option></select>
+      <label style="margin-left:12px">Filter by BCLS Region:</label>
+      <select id="mapRegFilter"><option value="">All Regions</option></select>
+    </div>
+    <div style="position:relative">
+      <div id="mapContainer"></div>
+      <div class="map-legend" id="mapLegend"></div>
+    </div>
+  </div>
+
+  <div id="rms-panel" class="panel">
+    <div class="contact-grid" id="rmsGrid"></div>
+  </div>
+
+  <div id="investigators-panel" class="panel">
+    <div class="contact-grid" id="invGrid"></div>
+  </div>
+</div>
+
+<div class="detail-modal" id="detailModal">
+  <div class="detail-content">
+    <button class="close-btn" onclick="closeDetail()">&times;</button>
+    <h2 id="detailTitle"></h2>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<script>
+const stores=[{"store_num": "2", "name": "Ashcroft", "class": "C", "city": "Ashcroft", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "Central Interior"}, {"store_num": "3", "name": "Fort St John", "class": "B", "city": "Fort St John", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Northern BC"}, {"store_num": "5", "name": "Campbell River", "class": "A", "city": "Campbell River", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "6", "name": "Semiahmoo", "class": "A", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Stephanie Radic", "geo_region": "South Surrey"}, {"store_num": "7", "name": "Chilliwack", "class": "A", "city": "Chilliwack", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "8", "name": "Cumberland", "class": "C", "city": "Cumberland", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "9", "name": "Cranbrook", "class": "A", "city": "Cranbrook", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "10", "name": "Courtenay", "class": "A", "city": "Courtenay", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "12", "name": "Duncan", "class": "A", "city": "Duncan", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "13", "name": "Fernie", "class": "B", "city": "Fernie", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "14", "name": "Greenwood", "class": "C", "city": "Greenwood", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "15", "name": "Grand Forks", "class": "B", "city": "Grand Forks", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "16", "name": "Golden", "class": "B", "city": "Golden", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "17", "name": "Invermere", "class": "B", "city": "Invermere", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "18", "name": "Kaslo", "class": "C", "city": "Kaslo", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "19", "name": "Keremeos", "class": "C", "city": "Keremeos", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "23", "name": "Lillooet", "class": "C", "city": "Lillooet", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "Central Interior"}, {"store_num": "24", "name": "Ladysmith", "class": "B", "city": "Ladysmith", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "25", "name": "Ladner", "class": "A", "city": "Ladner", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 1", "investigator": "Stephanie Radic", "geo_region": "Ladner/Tsawwassen"}, {"store_num": "26", "name": "McBride", "class": "C", "city": "McBride", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "27", "name": "Mission", "class": "A", "city": "Mission", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "28", "name": "Sparwood", "class": "C", "city": "Sparwood", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "29", "name": "Merritt", "class": "B", "city": "Merritt", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "31", "name": "New Westminster", "class": "A", "city": "New Westminster", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "New Westminster"}, {"store_num": "32", "name": "Nelson", "class": "A", "city": "Nelson", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "33", "name": "Nanaimo Port Place", "class": "B", "city": "Nanaimo", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "34", "name": "Qualicum", "class": "B", "city": "Qualicum", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "35", "name": "Prince Rupert", "class": "B", "city": "Prince Rupert", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "North Coast"}, {"store_num": "37", "name": "Princeton", "class": "B", "city": "Princeton", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "38", "name": "Marpole", "class": "B", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Vancouver - West"}, {"store_num": "40", "name": "Port Alberni", "class": "B", "city": "Port Alberni", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "41", "name": "Powell River", "class": "B", "city": "Powell River", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Sunshine Coast"}, {"store_num": "42", "name": "Parksville", "class": "B", "city": "Parksville", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "43", "name": "Quesnel", "class": "B", "city": "Quesnel", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "44", "name": "Rossland", "class": "C", "city": "Rossland", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "45", "name": "Revelstoke", "class": "B", "city": "Revelstoke", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "46", "name": "Smithers", "class": "B", "city": "Smithers", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "North Coast"}, {"store_num": "47", "name": "Stewart", "class": "C", "city": "Stewart", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "North Coast"}, {"store_num": "48", "name": "Salmon Arm", "class": "A", "city": "Salmon Arm", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "49", "name": "Enderby", "class": "C", "city": "Enderby", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "50", "name": "Sidney", "class": "A", "city": "Sidney", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "51", "name": "Trail", "class": "B", "city": "Trail", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "52", "name": "Terrace", "class": "B", "city": "Terrace", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "North Coast"}, {"store_num": "53", "name": "Harbour Centre", "class": "A", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Dave Toor", "geo_region": "Vancouver - Downtown"}, {"store_num": "55", "name": "Gold River", "class": "C", "city": "Gold River", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "59", "name": "Brentwood Crossing", "class": "B", "city": "Brentwood Bay", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "60", "name": "Cache Creek", "class": "C", "city": "Cache Creek", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "63", "name": "Williams Lake", "class": "B", "city": "Williams Lake", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "64", "name": "Agassiz", "class": "C", "city": "Agassiz", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "65", "name": "Haney", "class": "A", "city": "Maple Ridge", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Maple Ridge/Haney"}, {"store_num": "66", "name": "Kimberley", "class": "B", "city": "Kimberley", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "67", "name": "Lake Cowichan", "class": "B", "city": "Lake Cowichan", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "69", "name": "Oliver", "class": "B", "city": "Oliver", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "70", "name": "Cloverdale", "class": "A", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "71", "name": "Hope", "class": "B", "city": "Hope", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "72", "name": "Ambleside", "class": "C", "city": "West Vancouver", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "73", "name": "Burns Lake", "class": "C", "city": "Burns Lake", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "Central Interior"}, {"store_num": "74", "name": "New Denver", "class": "C", "city": "New Denver", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "75", "name": "Creston", "class": "C", "city": "Creston", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "76", "name": "Richmond Brighouse", "class": "A - SIG", "city": "Richmond", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 1", "investigator": "Dave Toor", "geo_region": "Richmond"}, {"store_num": "77", "name": "Northgate", "class": "A - SIG", "city": "Burnaby", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Burnaby"}, {"store_num": "78", "name": "Castlegar", "class": "B", "city": "Castlegar", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "79", "name": "Kamloops Columbia Place", "class": "A - SIG", "city": "Kamloops", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "80", "name": "Gibsons", "class": "A", "city": "Gibsons", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Sunshine Coast"}, {"store_num": "81", "name": "Vanderhoof", "class": "C", "city": "Vanderhoof", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "82", "name": "Hillside", "class": "A", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "83", "name": "Osoyoos", "class": "B", "city": "Osoyoos", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "86", "name": "Summerland", "class": "B", "city": "Summerland", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "88", "name": "Clearwater", "class": "C", "city": "Clearwater", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "89", "name": "Nicola Station", "class": "A", "city": "Port Coquitlam", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "TriCities"}, {"store_num": "90", "name": "Jericho Village", "class": "A", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Vancouver - West"}, {"store_num": "91", "name": "Fraser Lake", "class": "C", "city": "Fraser Lake", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "92", "name": "Sicamous", "class": "C", "city": "Sicamous", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "93", "name": "Madeira Park", "class": "B", "city": "Madeira Park", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Sunshine Coast"}, {"store_num": "94", "name": "Bute Street", "class": "A", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Vancouver - Downtown"}, {"store_num": "95", "name": "Fruitvale", "class": "C", "city": "Fruitvale", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "96", "name": "Valemount", "class": "C", "city": "Valemount", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "97", "name": "Royal Square", "class": "B", "city": "New Westminster", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "New Westminster"}, {"store_num": "98", "name": "Tsawwassen", "class": "A", "city": "Delta", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 1", "investigator": "Stephanie Radic", "geo_region": "Ladner/Tsawwassen"}, {"store_num": "99", "name": "Houston", "class": "C", "city": "Houston", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "North Coast"}, {"store_num": "101", "name": "Pemberton", "class": "B", "city": "Pemberton", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Whistler"}, {"store_num": "102", "name": "Dunbar", "class": "A - SIG", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Vancouver - West"}, {"store_num": "105", "name": "Masset", "class": "C", "city": "Masset", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Haidi Gwaii"}, {"store_num": "106", "name": "Mackenzie", "class": "C", "city": "MacKenzie", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "107", "name": "Westview", "class": "A", "city": "North Vancouver", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "109", "name": "Aldergrove", "class": "B", "city": "Aldergrove", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "110", "name": "Ocean Park", "class": "B", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Stephanie Radic", "geo_region": "South Surrey"}, {"store_num": "111", "name": "Commercial Drive", "class": "A", "city": "Vancouver", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Vancouver - East"}, {"store_num": "112", "name": "Cardero", "class": "B", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Vancouver - Downtown"}, {"store_num": "113", "name": "Collingwood-Kingsway", "class": "A", "city": "Vancouver", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Vancouver - East"}, {"store_num": "114", "name": "Prince George Hart", "class": "B", "city": "Prince George", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Central Interior"}, {"store_num": "115", "name": "Port McNeill", "class": "C", "city": "Port McNeill", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "117", "name": "Broadway & Maple", "class": "B", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Vancouver - West"}, {"store_num": "118", "name": "Tofino", "class": "B", "city": "Tofino", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "120", "name": "Richmond Ironwood", "class": "A - SIG", "city": "Richmond", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 1", "investigator": "Dave Toor", "geo_region": "Richmond"}, {"store_num": "122", "name": "Whalley", "class": "B", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "123", "name": "Kingsgate Mall", "class": "A", "city": "Vancouver", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Vancouver - East"}, {"store_num": "124", "name": "Gorge & Tillicum", "class": "A", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "125", "name": "Westshore", "class": "A - SIG", "city": "Langford", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "127", "name": "Fort Langley", "class": "C", "city": "Fort Langley", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "128", "name": "Port Alice", "class": "C", "city": "Port Alice", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "129", "name": "Alberni & Bute", "class": "A - SIG", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Dave Toor", "geo_region": "Vancouver - Downtown"}, {"store_num": "130", "name": "Penticton Plaza", "class": "A", "city": "Penticton", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "131", "name": "Elkford", "class": "C", "city": "Elkford", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "133", "name": "Dollarton Village", "class": "B", "city": "North Vancouver", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "134", "name": "Gabriola Island", "class": "C", "city": "Gabriola Island", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "135", "name": "Vernon", "class": "A - SIG", "city": "Vernon", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "136", "name": "Arbutus", "class": "A - SIG", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Vancouver - West"}, {"store_num": "137", "name": "Kensington", "class": "B", "city": "Burnaby", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Burnaby"}, {"store_num": "138", "name": "Barriere", "class": "C", "city": "Barriere", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "139", "name": "Logan Lake", "class": "C", "city": "Logan Lake", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "140", "name": "Cedar Hill", "class": "B", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "143", "name": "Kelowna Westbank", "class": "A", "city": "Westbank", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "145", "name": "Scottsdale Centre", "class": "A", "city": "Delta", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "147", "name": "Kamloops Westsyde", "class": "B", "city": "Kamloops", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "148", "name": "Kelowna Mission Park", "class": "A - SIG", "city": "Kelowna", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "149", "name": "Abbotsford", "class": "A", "city": "Abbotsford", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "150", "name": "James Bay", "class": "B", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "152", "name": "Capilano Mall", "class": "A", "city": "North Vancouver", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "153", "name": "Como Lake", "class": "A", "city": "Coquitlam", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "TriCities"}, {"store_num": "154", "name": "Pr. George College Hts", "class": "B", "city": "Prince George", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Central Interior"}, {"store_num": "155", "name": "Pender Island", "class": "C", "city": "Pender Island", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "157", "name": "Parksville North", "class": "A", "city": "Parksville", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "158", "name": "Langley", "class": "A - SIG", "city": "Langley", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "160", "name": "39th & Cambie", "class": "A - SIG", "city": "Vancouver", "bcls_region": "10", "bcls_regional_mgr": "Mitch McWhinnie", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Vancouver - West"}, {"store_num": "161", "name": "Blanshard Square", "class": "A", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "163", "name": "Westwood Centre", "class": "A - SIG", "city": "Port Coquitlam", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "TriCities"}, {"store_num": "165", "name": "Meadowtown", "class": "A - SIG", "city": "Pitt Meadows", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Maple Ridge/Haney"}, {"store_num": "166", "name": "Winfield", "class": "B", "city": "Winfield", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "167", "name": "Kelowna Orchard Park", "class": "A - SIG", "city": "Kelowna", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "169", "name": "Tumbler Ridge", "class": "C", "city": "Tumbler Ridge", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Dave Toor", "geo_region": "Northern BC"}, {"store_num": "170", "name": "Cottonwood Centre", "class": "A", "city": "Chilliwack", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "172", "name": "Kings Cross", "class": "A", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "173", "name": "Mill Bay", "class": "B", "city": "Mill Bay", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "174", "name": "Prince George Pine Centre", "class": "A - SIG", "city": "Prince George", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Central Interior"}, {"store_num": "175", "name": "Caulfeild", "class": "A - SIG", "city": "West Vancouver", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "177", "name": "8th & Cambie", "class": "A", "city": "Vancouver", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 2", "investigator": "Rick Stewart", "geo_region": "Vancouver - East"}, {"store_num": "178", "name": "Fairfield", "class": "B", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "179", "name": "Whistler Marketplace", "class": "A", "city": "Whistler", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Whistler"}, {"store_num": "181", "name": "Broadmead Village", "class": "A", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "182", "name": "Fleetwood", "class": "A", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "183", "name": "Peninsula Village", "class": "A - SIG", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Stephanie Radic", "geo_region": "South Surrey"}, {"store_num": "185", "name": "Willow Point", "class": "B", "city": "Campbell River", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "186", "name": "Walnut Grove", "class": "A", "city": "Langley", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "188", "name": "Nanaimo Longwood", "class": "B", "city": "Nanaimo", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "189", "name": "Abbotsford Village", "class": "B - SIG", "city": "Abbotsford", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Valley East"}, {"store_num": "191", "name": "Yaletown", "class": "B", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Dave Toor", "geo_region": "Vancouver - Downtown"}, {"store_num": "192", "name": "UBC Wesbrook Village", "class": "B", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Vancouver - West"}, {"store_num": "193", "name": "Byrne Road", "class": "A", "city": "Burnaby", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Burnaby"}, {"store_num": "194", "name": "Champlain Square", "class": "B", "city": "Vancouver", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Vancouver - East"}, {"store_num": "195", "name": "Whistler Creekside", "class": "B", "city": "Whistler", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Whistler"}, {"store_num": "196", "name": "Esplanade", "class": "B", "city": "North Vancouver", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "201", "name": "Clinton", "class": "C", "city": "Clinton", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "Central Interior"}, {"store_num": "202", "name": "Nakusp", "class": "C", "city": "Nakusp", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "203", "name": "South Burnaby", "class": "A", "city": "Burnaby", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Burnaby"}, {"store_num": "204", "name": "Ganges", "class": "B", "city": "Salt Spring Island", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "205", "name": "Port Moody", "class": "B", "city": "Port Moody", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "TriCities"}, {"store_num": "206", "name": "Chemainus", "class": "C", "city": "Chemainus", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "207", "name": "Salmo", "class": "C", "city": "Salmo", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "West Kootenays"}, {"store_num": "208", "name": "Squamish", "class": "A", "city": "Squamish", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Whistler"}, {"store_num": "210", "name": "Kerrisdale", "class": "B", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Vancouver - West"}, {"store_num": "211", "name": "Daajing Giids", "class": "C", "city": "Daajing Giids", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Haidi Gwaii"}, {"store_num": "212", "name": "Dawson Creek", "class": "B", "city": "Dawson Creek", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Northern BC"}, {"store_num": "213", "name": "Kitimat", "class": "B", "city": "Kitimat", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "North Coast"}, {"store_num": "214", "name": "Lumby", "class": "C", "city": "Lumby", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "215", "name": "Armstrong", "class": "C", "city": "Armstrong", "bcls_region": "7", "bcls_regional_mgr": "Zade Cawley", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus"}, {"store_num": "216", "name": "Ucluelet", "class": "C", "city": "Ucluelet", "bcls_region": "5", "bcls_regional_mgr": "Deep Sandhu", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "217", "name": "North Burnaby", "class": "A", "city": "Burnaby", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Burnaby"}, {"store_num": "218", "name": "Fort Street", "class": "A - SIG", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "220", "name": "HighGate Village", "class": "A - SIG", "city": "Burnaby", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Burnaby"}, {"store_num": "221", "name": "100 Mile House", "class": "A", "city": "100 Mile House", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "Central Interior"}, {"store_num": "222", "name": "Fort Nelson", "class": "C", "city": "Fort Nelson", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Northern BC"}, {"store_num": "223", "name": "Kamloops North", "class": "A", "city": "Kamloops", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "224", "name": "Solo", "class": "A - SIG", "city": "Burnaby", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Burnaby"}, {"store_num": "225", "name": "Alert Bay", "class": "C", "city": "Alert Bay", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "226", "name": "Chase", "class": "B", "city": "Chase", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Okanagan Plus B"}, {"store_num": "227", "name": "Hazelton", "class": "C", "city": "Hazelton", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 1", "investigator": "Jim Chamberlain", "geo_region": "North Coast"}, {"store_num": "228", "name": "Park Royal", "class": "A - SIG", "city": "West Vancouver", "bcls_region": "10", "bcls_regional_mgr": "Mitch McWhinnie", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "229", "name": "Sooke", "class": "B", "city": "Sooke", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "230", "name": "Sechelt", "class": "A", "city": "Sechelt", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Sunshine Coast"}, {"store_num": "232", "name": "Bella Coola", "class": "C", "city": "Bella Coola", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Central Coast"}, {"store_num": "233", "name": "Robson Street", "class": "A", "city": "Vancouver", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Vancouver - Downtown"}, {"store_num": "234", "name": "Hudson Hope", "class": "C", "city": "Hudson Hope", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Northern BC"}, {"store_num": "235", "name": "Comox", "class": "B", "city": "Comox", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "236", "name": "Port Hardy", "class": "B", "city": "Port Hardy", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "North Island"}, {"store_num": "237", "name": "28th & Main", "class": "B", "city": "Vancouver", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 3", "investigator": "Rick Stewart", "geo_region": "Vancouver - East"}, {"store_num": "238", "name": "Chetwynd", "class": "C", "city": "Chetwynd", "bcls_region": "9", "bcls_regional_mgr": "Chris Robinson", "clp_region": "CLP 1", "investigator": "Richard Kim", "geo_region": "Northern BC"}, {"store_num": "239", "name": "SFU", "class": "C", "city": "Burnaby", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Burnaby"}, {"store_num": "240", "name": "Guildford", "class": "B", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "241", "name": "Nordel Crossing", "class": "A", "city": "Surrey", "bcls_region": "2", "bcls_regional_mgr": "Nathan Alcos", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "Langley/Surrey/Cloverdale"}, {"store_num": "242", "name": "Saanich", "class": "B", "city": "Victoria", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 6", "investigator": "Stephanie Radic", "geo_region": "Lower Island/Victoria"}, {"store_num": "243", "name": "Nanaimo Terminal Park", "class": "A", "city": "Nanaimo", "bcls_region": "4", "bcls_regional_mgr": "Evan McAskile", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Lower Island/Victoria"}, {"store_num": "244", "name": "Richmond Seafair", "class": "A", "city": "Richmond", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 1", "investigator": "Dave Toor", "geo_region": "Richmond"}, {"store_num": "245", "name": "Radium", "class": "C", "city": "Radium Hot Springs", "bcls_region": "3", "bcls_regional_mgr": "Suzanne Madsen", "clp_region": "CLP 5", "investigator": "Jim Chamberlain", "geo_region": "East Kootenay/Columbia"}, {"store_num": "247", "name": "Lynn Valley", "class": "A - SIG", "city": "North Vancouver", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "North Shore"}, {"store_num": "248", "name": "Fort St James", "class": "C", "city": "Fort St James", "bcls_region": "6", "bcls_regional_mgr": "Dale Ford", "clp_region": "CLP 1", "investigator": "Rick Stewart", "geo_region": "North Coast"}, {"store_num": "300", "name": "Broadway & Lillooet", "class": "A", "city": "Vancouver", "bcls_region": "1", "bcls_regional_mgr": "Vacant* r/Megan Hopson", "clp_region": "CLP 2", "investigator": "Richard Kim", "geo_region": "Vancouver - East"}, {"store_num": "302", "name": "Whistler Village", "class": "B", "city": "Whistler", "bcls_region": "8", "bcls_regional_mgr": "Kevin McManus", "clp_region": "CLP 4", "investigator": "Dave Toor", "geo_region": "Whistler"}];
+const rms=[{"region_num": "1", "regional_manager": "Vacant* r/Megan Hopson", "phone": "604-252-8730", "email": "megan.hopson@bcliquorstores.com"}, {"region_num": "2", "regional_manager": "Nathan Alcos", "phone": "604-252-8576", "email": "nathan.alcos@bcldb.com"}, {"region_num": "3", "regional_manager": "Suzanne Madsen", "phone": "604-252-8587", "email": "suzanne.madson@bcldb.com"}, {"region_num": "4", "regional_manager": "Evan McAskile", "phone": "250-356-2912", "email": "Evan.McAskile@bcliquorstores.com"}, {"region_num": "5", "regional_manager": "Deep Sandhu", "phone": "604-252-8746", "email": "Deep.Sandhu@bcldb.com"}, {"region_num": "6", "regional_manager": "Dale Ford", "phone": "604-805-9315", "email": "Dale.Ford@bcliquorstores.com"}, {"region_num": "7", "regional_manager": "Zade Cawley", "phone": "250-826-6816", "email": "Zade.Cawley@bcldb.com"}, {"region_num": "8", "regional_manager": "Kevin McManus", "phone": "604-252-8596", "email": "Kevin.McManus@bcliquorstores.com"}, {"region_num": "9", "regional_manager": "Chris Robinson", "phone": "604-252-8834", "email": "Chris.Robinson@bcldb.com"}, {"region_num": "10", "regional_manager": "Mitch McWhinnie", "phone": "604-252-8732", "email": "Mitch.McWhinnie@bcldb.com"}];
+const investigators=[{"clp_region": "1", "investigator": "Vacant", "phone": "nan", "email": "nan"}, {"clp_region": "2", "investigator": "Richard Kim", "phone": "604 252-7427", "email": "richard.kim@bcldb.com"}, {"clp_region": "3", "investigator": "Rick Stewart", "phone": "604 252-7439", "email": "Rick.Stewart@bcldb.com"}, {"clp_region": "4", "investigator": "Dave Toor", "phone": "604-252-7415", "email": "dave.toor@bcldb.com"}, {"clp_region": "5", "investigator": "Jim Chamberlain", "phone": "604-252-7417", "email": "Jim.Chamberlain@bcldb.com"}, {"clp_region": "6", "investigator": "Stephanie Radic", "phone": "604 252-5055", "email": "stephanie.radic@bcldb.com"}];
+const cityCoords={"100 Mile House": [51.644, -121.295], "Abbotsford": [49.058, -122.253], "Agassiz": [49.238, -121.763], "Aldergrove": [49.058, -122.473], "Alert Bay": [50.586, -126.932], "Armstrong": [50.449, -119.196], "Ashcroft": [50.728, -121.283], "Barriere": [51.186, -119.997], "Bella Coola": [52.37, -126.752], "Brentwood Bay": [48.572, -123.462], "Burnaby": [49.249, -122.981], "Burns Lake": [54.23, -125.76], "Cache Creek": [50.81, -121.325], "Campbell River": [50.019, -125.248], "Castlegar": [49.326, -117.666], "Chase": [50.816, -119.683], "Chemainus": [48.927, -123.713], "Chetwynd": [55.699, -121.633], "Chilliwack": [49.168, -121.951], "Clearwater": [51.651, -120.037], "Clinton": [51.091, -121.584], "Comox": [49.672, -124.902], "Coquitlam": [49.284, -122.791], "Courtenay": [49.687, -124.994], "Cranbrook": [49.51, -115.769], "Creston": [49.095, -116.514], "Cumberland": [49.62, -125.028], "Daajing Giids": [53.252, -131.814], "Dawson Creek": [55.76, -120.235], "Delta": [49.084, -123.059], "Duncan": [48.784, -123.707], "Elkford": [50.024, -114.921], "Enderby": [50.551, -119.153], "Fernie": [49.504, -115.063], "Fort Langley": [49.17, -122.577], "Fort Nelson": [58.805, -122.697], "Fort St James": [54.443, -124.252], "Fort St John": [56.246, -120.846], "Fraser Lake": [54.053, -124.849], "Fruitvale": [49.115, -117.552], "Gabriola Island": [49.166, -123.788], "Gibsons": [49.395, -123.506], "Gold River": [49.774, -126.048], "Golden": [51.298, -116.968], "Grand Forks": [49.033, -118.44], "Greenwood": [49.091, -118.678], "Hazelton": [55.253, -127.668], "Hope": [49.381, -121.441], "Houston": [54.398, -126.647], "Hudson Hope": [56.031, -121.905], "Invermere": [50.508, -116.032], "Kamloops": [50.674, -120.332], "Kaslo": [49.913, -116.913], "Kelowna": [49.888, -119.496], "Keremeos": [49.202, -119.829], "Kimberley": [49.67, -115.978], "Kitimat": [54.053, -128.657], "Ladner": [49.089, -123.082], "Ladysmith": [48.995, -123.82], "Lake Cowichan": [48.825, -124.054], "Langford": [48.449, -123.506], "Langley": [49.104, -122.579], "Lillooet": [50.683, -121.942], "Logan Lake": [50.553, -120.789], "Lumby": [50.252, -118.968], "MacKenzie": [55.338, -123.097], "Madeira Park": [49.626, -124.023], "Maple Ridge": [49.219, -122.598], "Masset": [54.015, -132.153], "McBride": [53.301, -120.17], "Merritt": [50.112, -120.789], "Mill Bay": [48.647, -123.555], "Mission": [49.133, -122.309], "Nakusp": [50.243, -117.801], "Nanaimo": [49.166, -123.94], "Nelson": [49.493, -117.286], "New Denver": [49.993, -117.372], "New Westminster": [49.207, -122.911], "North Vancouver": [49.32, -123.074], "Oliver": [49.182, -119.549], "Osoyoos": [49.033, -119.468], "Parksville": [49.316, -124.312], "Pemberton": [50.317, -122.803], "Pender Island": [48.775, -123.27], "Penticton": [49.491, -119.59], "Pitt Meadows": [49.233, -122.689], "Port Alberni": [49.234, -124.805], "Port Alice": [50.408, -127.449], "Port Coquitlam": [49.262, -122.781], "Port Hardy": [50.724, -127.496], "Port McNeill": [50.59, -127.085], "Port Moody": [49.284, -122.857], "Powell River": [49.835, -124.524], "Prince George": [53.917, -122.75], "Prince Rupert": [54.316, -130.321], "Princeton": [49.459, -120.506], "Qualicum": [49.35, -124.434], "Quesnel": [52.978, -122.493], "Radium Hot Springs": [50.62, -116.073], "Revelstoke": [50.998, -118.195], "Richmond": [49.17, -123.137], "Rossland": [49.079, -117.802], "Salmo": [49.19, -117.278], "Salmon Arm": [50.7, -119.272], "Salt Spring Island": [48.831, -123.509], "Sechelt": [49.474, -123.755], "Sicamous": [50.836, -118.977], "Sidney": [48.651, -123.398], "Smithers": [54.78, -127.174], "Sooke": [48.374, -123.726], "Sparwood": [49.733, -114.885], "Squamish": [49.702, -123.153], "Stewart": [55.938, -129.99], "Summerland": [49.601, -119.678], "Surrey": [49.19, -122.849], "Terrace": [54.516, -128.6], "Tofino": [49.153, -125.907], "Trail": [49.095, -117.711], "Tumbler Ridge": [55.129, -120.993], "Ucluelet": [48.942, -125.546], "Valemount": [52.831, -119.264], "Vancouver": [49.283, -123.121], "Vanderhoof": [54.017, -124.0], "Vernon": [50.267, -119.272], "Victoria": [48.428, -123.366], "West Vancouver": [49.328, -123.16], "Westbank": [49.862, -119.583], "Whistler": [50.116, -122.957], "Williams Lake": [52.141, -122.141], "Winfield": [50.028, -119.415]};
+
+const invColors={
+  "Jim Chamberlain":"#e74c3c",
+  "Richard Kim":"#2980b9",
+  "Rick Stewart":"#27ae60",
+  "Dave Toor":"#f39c12",
+  "Stephanie Radic":"#8e44ad",
+  "Vacant":"#95a5a6"
+};
+
+let sortCol="store_num",sortAsc=true;
+let filtered=[...stores];
+let map=null, markers=[];
+
+function init(){
+  populateFilter("fGeo","geo_region");
+  populateFilter("fBcls","bcls_region");
+  populateFilter("fClp","clp_region");
+  populateFilter("fClass","class");
+  populateFilter("fInv","investigator");
+  populateMapFilters();
+  document.getElementById("countTotal").textContent=stores.length;
+  renderStores();
+  renderRMs();
+  renderInvestigators();
+  buildLegend();
+  document.getElementById("globalSearch").addEventListener("input",renderStores);
+  document.querySelectorAll(".filters select").forEach(s=>s.addEventListener("change",renderStores));
+  document.getElementById("mapInvFilter").addEventListener("change",renderMap);
+  document.getElementById("mapRegFilter").addEventListener("change",renderMap);
+  document.querySelectorAll("th[data-col]").forEach(th=>th.addEventListener("click",()=>{
+    const col=th.dataset.col;
+    if(sortCol===col)sortAsc=!sortAsc;else{sortCol=col;sortAsc=true}
+    document.querySelectorAll("th").forEach(t=>t.classList.remove("sorted"));
+    th.classList.add("sorted");
+    th.querySelector(".sort-arrow").innerHTML=sortAsc?"&#9650;":"&#9660;";
+    renderStores();
+  }));
+  document.getElementById("detailModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeDetail()});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDetail()});
+}
+
+function populateFilter(id,key){
+  const sel=document.getElementById(id);
+  const vals=[...new Set(stores.map(s=>s[key]))].sort((a,b)=>{
+    const na=parseInt(a),nb=parseInt(b);
+    if(!isNaN(na)&&!isNaN(nb))return na-nb;
+    return a.localeCompare(b);
+  });
+  vals.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o)});
+}
+
+function populateMapFilters(){
+  const invSel=document.getElementById("mapInvFilter");
+  const invs=[...new Set(stores.map(s=>s.investigator))].sort();
+  invs.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;invSel.appendChild(o)});
+  const regSel=document.getElementById("mapRegFilter");
+  const regs=[...new Set(stores.map(s=>s.bcls_region))].sort((a,b)=>parseInt(a)-parseInt(b));
+  regs.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent="Region "+v;regSel.appendChild(o)});
+}
+
+function renderStores(){
+  const q=document.getElementById("globalSearch").value.toLowerCase();
+  const fGeo=document.getElementById("fGeo").value;
+  const fBcls=document.getElementById("fBcls").value;
+  const fClp=document.getElementById("fClp").value;
+  const fClass=document.getElementById("fClass").value;
+  const fInv=document.getElementById("fInv").value;
+
+  filtered=stores.filter(s=>{
+    if(fGeo&&s.geo_region!==fGeo)return false;
+    if(fBcls&&s.bcls_region!==fBcls)return false;
+    if(fClp&&s.clp_region!==fClp)return false;
+    if(fClass&&s["class"]!==fClass)return false;
+    if(fInv&&s.investigator!==fInv)return false;
+    if(q){
+      const hay=(s.store_num+" "+s.name+" "+s.city+" "+s.investigator+" "+s.bcls_regional_mgr+" "+s.geo_region).toLowerCase();
+      if(!hay.includes(q))return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a,b)=>{
+    let va=a[sortCol],vb=b[sortCol];
+    const na=parseInt(va),nb=parseInt(vb);
+    if(!isNaN(na)&&!isNaN(nb))return sortAsc?na-nb:nb-na;
+    return sortAsc?va.localeCompare(vb):vb.localeCompare(va);
+  });
+
+  const tbody=document.getElementById("storeBody");
+  tbody.innerHTML=filtered.map(s=>`<tr onclick="showDetail(${JSON.stringify(JSON.stringify(s))})" style="cursor:pointer">
+    <td><strong>${s.store_num}</strong></td>
+    <td>${s.name}</td>
+    <td>${classBadge(s["class"])}</td>
+    <td>${s.city}</td>
+    <td>${s.bcls_region}</td>
+    <td>${s.bcls_regional_mgr}</td>
+    <td>${s.clp_region}</td>
+    <td>${s.investigator}</td>
+    <td>${s.geo_region}</td>
+  </tr>`).join("");
+
+  document.getElementById("countShown").textContent=filtered.length;
+  document.getElementById("noResults").style.display=filtered.length?"none":"block";
+}
+
+function classBadge(c){
+  if(c.includes("SIG"))return`<span class="badge badge-sig">${c}</span>`;
+  if(c==="A")return`<span class="badge badge-a">${c}</span>`;
+  if(c==="B")return`<span class="badge badge-b">${c}</span>`;
+  return`<span class="badge badge-c">${c}</span>`;
+}
+
+function showDetail(json){
+  const s=JSON.parse(json);
+  document.getElementById("detailTitle").textContent="Store #"+s.store_num+" - "+s.name;
+  const rm=rms.find(r=>r.region_num===s.bcls_region);
+  const inv=investigators.find(i=>"CLP "+i.clp_region===s.clp_region||i.clp_region===s.clp_region.replace("CLP ",""));
+  let h="";
+  const rows=[
+    ["Store Number",s.store_num],["Store Name",s.name],["Class",s["class"]],["City",s.city],
+    ["Geographical Region",s.geo_region],["BCLS Region",s.bcls_region],
+    ["Regional Manager",s.bcls_regional_mgr+(rm?" | "+rm.phone:"")],
+    ["CLP Region",s.clp_region],["Investigator",s.investigator+(inv?" | "+inv.phone:"")],
+  ];
+  if(rm&&rm.email&&rm.email!=="nan")rows.push(["RM Email",rm.email]);
+  if(inv&&inv.email&&inv.email!=="nan")rows.push(["Investigator Email",inv.email]);
+  rows.forEach(r=>h+=`<div class="detail-row"><span class="label">${r[0]}</span><span class="value">${r[1]}</span></div>`);
+  document.getElementById("detailBody").innerHTML=h;
+  document.getElementById("detailModal").classList.add("show");
+}
+
+function closeDetail(){document.getElementById("detailModal").classList.remove("show")}
+
+function initMap(){
+  if(map)return;
+  map=L.map("mapContainer").setView([53.5,-125],5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:'&copy; OpenStreetMap contributors',maxZoom:18
+  }).addTo(map);
+  renderMap();
+}
+
+function renderMap(){
+  markers.forEach(m=>map.removeLayer(m));
+  markers=[];
+  const fInv=document.getElementById("mapInvFilter").value;
+  const fReg=document.getElementById("mapRegFilter").value;
+  const filtered=stores.filter(s=>{
+    if(fInv&&s.investigator!==fInv)return false;
+    if(fReg&&s.bcls_region!==fReg)return false;
+    return true;
+  });
+  filtered.forEach(s=>{
+    const c=cityCoords[s.city];
+    if(!c)return;
+    const color=invColors[s.investigator]||"#7f8c8d";
+    const icon=L.divIcon({
+      className:"",
+      html:`<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
+      iconSize:[14,14],iconAnchor:[7,7]
+    });
+    const m=L.marker([c[0]+(.001*Math.random()-.0005),c[1]+(.001*Math.random()-.0005)],{icon})
+      .bindPopup(`<div style="font-family:Segoe UI,Arial;min-width:180px">
+        <strong style="color:#1a237e;font-size:1rem">Store #${s.store_num}</strong><br>
+        <strong>${s.name}</strong> (${s.city})<br>
+        <hr style="margin:6px 0;border:none;border-top:1px solid #eee">
+        <span style="color:#555">Class:</span> ${s["class"]}<br>
+        <span style="color:#555">BCLS Region:</span> ${s.bcls_region} (${s.bcls_regional_mgr})<br>
+        <span style="color:#555">CLP:</span> ${s.clp_region}<br>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:4px"></span>
+        <strong>${s.investigator}</strong><br>
+        <span style="color:#555">Geo:</span> ${s.geo_region}
+      </div>`,{maxWidth:280})
+      .addTo(map);
+    markers.push(m);
+  });
+}
+
+function buildLegend(){
+  let h="<h4>Investigators</h4>";
+  Object.entries(invColors).forEach(([name,color])=>{
+    if(name==="Vacant")return;
+    h+=`<div class="legend-item"><div class="legend-dot" style="background:${color}"></div>${name}</div>`;
+  });
+  document.getElementById("mapLegend").innerHTML=h;
+}
+
+function renderRMs(){
+  document.getElementById("rmsGrid").innerHTML=rms.map(r=>`<div class="contact-card">
+    <div class="card-name">${r.regional_manager}</div>
+    <div class="card-role">BCLS Region ${r.region_num}</div>
+    <div class="card-detail">&#128222; ${r.phone}</div>
+    <div class="card-detail">&#9993; ${r.email}</div>
+  </div>`).join("");
+}
+
+function renderInvestigators(){
+  document.getElementById("invGrid").innerHTML=investigators.map(r=>`<div class="contact-card">
+    <div class="card-name">${r.investigator}</div>
+    <div class="card-role">CLP Region ${r.clp_region}</div>
+    <div class="card-detail">${r.phone&&r.phone!=="nan"?"&#128222; "+r.phone:""}</div>
+    <div class="card-detail">${r.email&&r.email!=="nan"?"&#9993; "+r.email:""}</div>
+  </div>`).join("");
+}
+
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.querySelector(`.tab[onclick*="${name}"]`).classList.add("active");
+  document.getElementById(name+"-panel").classList.add("active");
+  if(name==="map"){setTimeout(()=>{initMap();map.invalidateSize()},100)}
+}
+
+init();
+</script>
+</body>
+</html>
