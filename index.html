@@ -688,7 +688,7 @@ async function renderMiniCal(containerId,year,month){
     const py=month===0?year-1:year;
     const day=prevDays-i;
     const ds=py+'-'+String(pm+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-    html+='<div class="mini-cal-day other-month" onclick="calClickDay(''+ds+'')">'+day+'</div>';
+    html+='<div class="mini-cal-day other-month" onclick="calClickDay(&quot;'+ds+'&quot;)">'+day+'</div>';
   }
   // Current month
   for(let d=1;d<=daysInMonth;d++){
@@ -697,7 +697,7 @@ async function renderMiniCal(containerId,year,month){
     if(ds===todayStr)cls+=' today';
     if(ds===selectedStr)cls+=' selected';
     if(taskDays.has(ds))cls+=' has-tasks';
-    html+='<div class="'+cls+'" onclick="calClickDay(''+ds+'')">'+d+'</div>';
+    html+='<div class="'+cls+'" onclick="calClickDay(&quot;'+ds+'&quot;)">'+d+'</div>';
   }
   // Next month filler
   const totalCells=firstDay+daysInMonth;
@@ -706,7 +706,7 @@ async function renderMiniCal(containerId,year,month){
     const nm=month===11?0:month+1;
     const ny=month===11?year+1:year;
     const ds=ny+'-'+String(nm+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    html+='<div class="mini-cal-day other-month" onclick="calClickDay(''+ds+'')">'+d+'</div>';
+    html+='<div class="mini-cal-day other-month" onclick="calClickDay(&quot;'+ds+'&quot;)">'+d+'</div>';
   }
   html+='</div>';
   container.innerHTML=html;
