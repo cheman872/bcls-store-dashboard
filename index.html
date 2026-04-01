@@ -429,7 +429,7 @@ function renderStores(){
     if(fGeo&&s.geo_region!==fGeo)return false;if(fBcls&&s.bcls_region!==fBcls)return false;
     if(fClp&&s.clp_region!==fClp)return false;if(fClass&&s["class"]!==fClass)return false;
     if(fInv&&s.investigator!==fInv)return false;
-    if(q){const hay=(s.store_num+" "+s.name+" "+s.city+" "+(s.address||"")+" "+(s.phone||"")+" "+s.investigator+" "+s.bcls_regional_mgr+" "+s.geo_region).toLowerCase();if(!hay.includes(q))return false;}
+    if(q){if(/^\d+$/.test(q)){if(s.store_num!==q)return false}else{const hay=(s.store_num+" "+s.name+" "+s.city+" "+(s.address||"")+" "+(s.phone||"")+" "+s.investigator+" "+s.bcls_regional_mgr+" "+s.geo_region).toLowerCase();if(!hay.includes(q))return false;}}
     return true;
   });
   filtered.sort((a,b)=>{let va=a[sortCol],vb=b[sortCol];const na=parseInt(va),nb=parseInt(vb);
