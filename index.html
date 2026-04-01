@@ -752,14 +752,15 @@ function todoInit(){
 
 function mapSearchStore(){
   const q=document.getElementById("mapSearch").value.trim().toLowerCase();
-  if(!q||!map){document.getElementById("mapResetBtn").style.display="none";return}
+  if(!q){document.getElementById("mapResetBtn").style.display="none";return}
+  if(!map){initMap()}
   let match=null;
   if(/^\d+$/.test(q)){match=stores.find(s=>s.store_num===q)}
   else{match=stores.find(s=>s.name.toLowerCase().includes(q)||s.city.toLowerCase().includes(q))}
   if(match&&match.latitude&&match.longitude){
+    map.flyTo([match.latitude,match.longitude],15,{duration:1.2});
     const m=markerMap[match.store_num];
-    map.flyTo([match.latitude,match.longitude],15,{duration:1});
-    if(m)setTimeout(()=>m.openPopup(),600);
+    if(m){map.once('moveend',()=>m.openPopup())}
     document.getElementById("mapResetBtn").style.display="inline-block";
   }
 }
