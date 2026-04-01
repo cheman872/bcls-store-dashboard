@@ -475,7 +475,7 @@ function showDetail(json){
   if(s.crime_total_2023!=null){
     const yoy=s.crime_total_2022?(((s.crime_total_2023-s.crime_total_2022)/s.crime_total_2022)*100).toFixed(1):'N/A';
     const trend=yoy!=='N/A'?(parseFloat(yoy)>0?'<span style="color:#c0392b">+'+yoy+'%</span>':'<span style="color:#27ae60">'+yoy+'%</span>'):'';
-    rows.push(["Crime Data (2023)","<strong style='color:#1a237e'>"+s.crime_jurisdiction+"</strong>"]);
+    rows.push(["Crime Data (2023)","<strong style='color:#1a237e'>"+s.crime_jurisdiction+"</strong><br><span style='font-size:.75rem;color:#888'>Source: BC Ministry of Public Safety | Last updated: 2024</span>"]);
     rows.push(["Total Criminal Code Offences",s.crime_total_2023.toLocaleString()+' '+trend]);
     rows.push(["Crime Rate (per 1,000 pop)",s.crime_rate_2023]);
     rows.push(["Violent Offences",s.crime_violent_2023!=null?s.crime_violent_2023.toLocaleString():'N/A']);
