@@ -767,11 +767,39 @@ function renderCalendars(){
   renderMiniCal('calNext',nextYear,nextMonth);
 }
 
+async function todoAutoForward(){
+  const today=new Date().toISOString().slice(0,10);
+  // Check the last 30 days for incomplete tasks
+  let forwarded=0;
+  const todayDoc=await todoCollection().doc(today).get();
+  const todayData=todayDoc.exists?todayDoc.data():{tasks:[],notes:''};
+  for(let i=1;i<=30;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const pastDate=d.toISOString().slice(0,10);
+    const doc=await todoCollection().doc(pastDate).get();
+    if(!doc.exists)continue;
+    const data=doc.data();
+    const incomplete=data.tasks.filter(t=>t.status===''||t.status==='progress');
+    if(!incomplete.length)continue;
+    incomplete.forEach(t=>{
+      t.status='fwd';
+      const existing=todayData.tasks.filter(x=>x.pri===t.pri);
+      // Avoid duplicates - check if same text already exists today
+      if(todayData.tasks.some(x=>x.text===t.text&&x.pri===t.pri))return;
+      todayData.tasks.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),pri:t.pri,num:existing.length+1,text:t.text,status:'',deadline:t.deadline||''});
+      forwarded++;
+    });
+    await todoCollection().doc(pastDate).set({tasks:data.tasks,notes:data.notes,updated:firebase.firestore.FieldValue.serverTimestamp()});
+  }
+  if(forwarded>0){
+    await todoCollection().doc(today).set({tasks:todayData.tasks,notes:todayData.notes||'',updated:firebase.firestore.FieldValue.serverTimestamp()});
+    console.log(forwarded+' task(s) auto-forwarded to today');
+  }
+}
 function todoInit(){
   currentUserId=auth.currentUser.uid;
   document.getElementById('todoDate').value=new Date().toISOString().slice(0,10);
-  todoLoadDay();
-  renderCalendars();
+  todoAutoForward().then(()=>{todoLoadDay();renderCalendars()});
 }
 
 function mapSearchStore(){
