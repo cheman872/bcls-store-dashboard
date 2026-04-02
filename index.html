@@ -234,6 +234,7 @@ tr:hover{background:#f5f7ff}
       <div class="filter-group"><label>Class</label><select id="fClass"><option value="">All</option></select></div>
       <div class="filter-group"><label>Investigator</label><select id="fInv"><option value="">All</option></select></div>
       <div class="filter-group"><label>CCTV System</label><select id="fCctv"><option value="">All</option><option value="Vigil">Vigil</option><option value="Pelco 8100">Pelco 8100</option><option value="Pelco 4100">Pelco 4100</option></select></div>
+      <div class="filter-group"><label>Crime Score</label><select id="fCrime"><option value="">All</option><option value="1-2">1-2 (Low)</option><option value="3-4">3-4 (Below Avg)</option><option value="5-6">5-6 (Moderate)</option><option value="7-8">7-8 (Above Avg)</option><option value="9-10">9-10 (High)</option></select></div>
     </div>
     <div class="stats"><span>Showing <span class="stat" id="countShown">0</span> of <span class="stat" id="countTotal">0</span> stores</span></div>
     <div class="table-wrap">
@@ -441,12 +442,14 @@ function renderStores(){
   const fClp=document.getElementById("fClp").value,fClass=document.getElementById("fClass").value;
   const fInv=document.getElementById("fInv").value;
   const fCctv=document.getElementById("fCctv").value;
+  const fCrime=document.getElementById("fCrime").value;
   filtered=stores.filter(s=>{
     if(fType&&s.store_type!==fType)return false;
     if(fGeo&&s.geo_region!==fGeo)return false;if(fBcls&&s.bcls_region!==fBcls)return false;
     if(fClp&&s.clp_region!==fClp)return false;if(fClass&&s["class"]!==fClass)return false;
     if(fInv&&s.investigator!==fInv)return false;
     if(fCctv&&s.cctv_system!==fCctv)return false;
+    if(fCrime){const[lo,hi]=fCrime.split('-').map(Number);if(s.crime_score==null||s.crime_score<lo||s.crime_score>hi)return false;}
     if(q){if(/^\d+$/.test(q)){if(s.store_num!==q)return false}else{const hay=(s.store_num+" "+s.name+" "+s.city+" "+(s.address||"")+" "+(s.phone||"")+" "+s.investigator+" "+s.bcls_regional_mgr+" "+s.geo_region).toLowerCase();if(!hay.includes(q))return false;}}
     return true;
   });
