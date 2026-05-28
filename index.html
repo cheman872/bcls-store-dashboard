@@ -305,6 +305,15 @@ tr:hover{background:#f5f7ff}
       <label style="margin-left:8px">Road Type:</label>
       <select id="roadTypeFilter" onchange="renderRoadMarkers()"><option value="">All Types</option><option value="INCIDENT">Incidents</option><option value="CONSTRUCTION">Construction</option><option value="WEATHER_CONDITION">Weather</option></select>
       <button onclick="refreshFiresMap()" style="margin-left:12px;padding:5px 12px;border:1px solid #ddd;border-radius:5px;background:#fff;cursor:pointer;font-size:.85rem">&#8635; Refresh</button>
+      <span style="margin-left:14px;padding-left:14px;border-left:1px solid #ddd;font-weight:700;color:#1a237e;font-size:.85rem">Proximity Rings:</span>
+      <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showFireRings" checked onchange="drawProximityRings()"> Fires</label>
+      <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showRoadRings" onchange="drawProximityRings()"> Roads</label>
+      <select id="proximityRadius" onchange="drawProximityRings()" style="padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:.85rem">
+        <option value="10">10 km</option>
+        <option value="25" selected>25 km</option>
+        <option value="50">50 km</option>
+        <option value="100">100 km</option>
+      </select>
     </div>
     <div id="firesStats" style="display:flex;gap:16px;padding:10px 20px;background:#f8f9fc;border-bottom:1px solid #eee;font-size:.85rem;color:#555;flex-wrap:wrap">Loading fire &amp; road data…</div>
     <div style="position:relative">
@@ -323,6 +332,8 @@ tr:hover{background:#f5f7ff}
         <div style="font-weight:700;color:#888;font-size:.75rem;margin:8px 0 2px">Stores</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:#1a237e;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Liquor (BCLS)</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:#1b5e20;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Cannabis (BCCS)</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:13px;height:13px;border-radius:50%;background:#ff6f00;border:2px solid #fff;box-shadow:0 0 0 2px #ff6f00;flex-shrink:0"></div>In fire ring</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:11px;height:11px;border-radius:50%;background:#f39c12;border:2px solid #fff;box-shadow:0 0 0 2px #f39c12;flex-shrink:0"></div>In road ring</div>
       </div>
     </div>
   </div>
@@ -967,7 +978,7 @@ async function initFiresMap(){
   firesMap=L.map('firesMapContainer').setView([53.5,-125],5);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap | BC Wildfire Service | DriveBC',maxZoom:18}).addTo(firesMap);
   await Promise.all([fetchWildfires(),fetchRoadEvents()]);
-  renderFiresStores();
+  drawProximityRings();
   updateFiresStats();
 }
 
@@ -1058,16 +1069,89 @@ function renderRoadMarkers(){
   updateFiresStats();
 }
 
+let fireRingLayer=null,roadRingLayer=null;
+
+function getProximityRadiusM(){
+  return (parseInt((document.getElementById('proximityRadius')||{value:'25'}).value)||25)*1000;
+}
+
+function storeProximityInfo(lat,lng){
+  const radiusM=getProximityRadiusM();
+  const pt=L.latLng(lat,lng);
+  const fireRings=document.getElementById('showFireRings');
+  if(fireRings&&fireRings.checked){
+    let best=null,bestD=Infinity;
+    for(const f of wildfireData){
+      const a=f.attributes;
+      if(!a.LATITUDE||!a.LONGITUDE)continue;
+      const d=pt.distanceTo(L.latLng(a.LATITUDE,a.LONGITUDE));
+      if(d<=radiusM&&d<bestD){bestD=d;best={type:'fire',km:Math.round(d/100)/10,name:a.INCIDENT_NAME||a.FIRE_NUMBER||'Fire',status:a.FIRE_STATUS};}
+    }
+    if(best)return best;
+  }
+  const roadRings=document.getElementById('showRoadRings');
+  if(roadRings&&roadRings.checked){
+    let best=null,bestD=Infinity;
+    for(const ev of roadEventData){
+      if(!ev.geography||ev.geography.type!=='Point')continue;
+      const[lng2,lat2]=ev.geography.coordinates;
+      const d=pt.distanceTo(L.latLng(lat2,lng2));
+      if(d<=radiusM&&d<bestD){bestD=d;best={type:'road',km:Math.round(d/100)/10,name:ev.headline||(ev.roads&&ev.roads[0]?ev.roads[0].name:'Road event')};}
+    }
+    if(best)return best;
+  }
+  return null;
+}
+
+function drawProximityRings(){
+  if(!firesMap)return;
+  if(fireRingLayer){firesMap.removeLayer(fireRingLayer);fireRingLayer=null;}
+  if(roadRingLayer){firesMap.removeLayer(roadRingLayer);roadRingLayer=null;}
+  const radiusM=getProximityRadiusM();
+  const fireRings=document.getElementById('showFireRings');
+  if(fireRings&&fireRings.checked){
+    fireRingLayer=L.layerGroup();
+    wildfireData.forEach(f=>{
+      const a=f.attributes;
+      if(!a.LATITUDE||!a.LONGITUDE)return;
+      L.circle([a.LATITUDE,a.LONGITUDE],{radius:radiusM,color:'#e74c3c',fillColor:'#e74c3c',fillOpacity:0.06,weight:1.5,dashArray:'5 5'}).addTo(fireRingLayer);
+    });
+    fireRingLayer.addTo(firesMap);
+  }
+  const roadRings=document.getElementById('showRoadRings');
+  if(roadRings&&roadRings.checked){
+    roadRingLayer=L.layerGroup();
+    roadEventData.forEach(ev=>{
+      if(!ev.geography||ev.geography.type!=='Point')return;
+      const[lng,lat]=ev.geography.coordinates;
+      L.circle([lat,lng],{radius:radiusM,color:'#f39c12',fillColor:'#f39c12',fillOpacity:0.04,weight:1,dashArray:'3 5'}).addTo(roadRingLayer);
+    });
+    roadRingLayer.addTo(firesMap);
+  }
+  renderFiresStores();
+  updateFiresStats();
+}
+
 function renderFiresStores(){
   if(!firesMap)return;
   firesStoreMarkers.forEach(m=>firesMap.removeLayer(m));firesStoreMarkers=[];
   const show=document.getElementById('showStores');
   if(show&&!show.checked)return;
   stores.filter(s=>s.latitude&&s.longitude).forEach(s=>{
-    const color=s.store_type==='cannabis'?'#1b5e20':'#1a237e';
-    const icon=L.divIcon({className:'',html:`<div style="width:8px;height:8px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 3px rgba(0,0,0,.35);opacity:.75"></div>`,iconSize:[8,8],iconAnchor:[4,4]});
-    const m=L.marker([s.latitude,s.longitude],{icon})
-      .bindPopup(`<div style="font-family:Segoe UI,Arial"><strong>#${s.store_num} ${s.name}</strong><br>${s.city}, BC<br><span style="color:#555">${s.store_type==='cannabis'?'BCCS Cannabis':'BCLS Liquor'}</span></div>`);
+    const prox=storeProximityInfo(s.latitude,s.longitude);
+    let sz,color,ring,popExtra='';
+    if(prox&&prox.type==='fire'){
+      sz=13;color='#ff6f00';ring='2px solid #fff,0 0 0 2px #ff6f00';
+      popExtra=`<div style="margin-top:6px;padding:6px 8px;background:#fff3e0;border-radius:5px;font-size:.82rem"><strong style="color:#c0392b">&#128293; ${prox.km} km</strong> from <em>${prox.name}</em>${prox.status?' ('+prox.status+')':''}</div>`;
+    }else if(prox&&prox.type==='road'){
+      sz=11;color='#f39c12';ring='2px solid #fff,0 0 0 2px #f39c12';
+      popExtra=`<div style="margin-top:6px;padding:6px 8px;background:#fff8e1;border-radius:5px;font-size:.82rem"><strong style="color:#e67e22">&#128690; ${prox.km} km</strong> from <em>${prox.name}</em></div>`;
+    }else{
+      sz=8;color=s.store_type==='cannabis'?'#1b5e20':'#1a237e';ring='2px solid rgba(255,255,255,.9)';
+    }
+    const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:${ring};box-shadow:0 1px 4px rgba(0,0,0,.4);${prox?'':'opacity:.7'}"></div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    const m=L.marker([s.latitude,s.longitude],{icon,zIndexOffset:prox?1000:0})
+      .bindPopup(`<div style="font-family:Segoe UI,Arial;min-width:200px"><strong style="color:#1a237e">#${s.store_num} ${s.name}</strong><br>${s.city}, BC<br><span style="color:#555">${s.store_type==='cannabis'?'BCCS Cannabis':'BCLS Liquor'}</span>${popExtra}</div>`,{maxWidth:280});
     m.addTo(firesMap);firesStoreMarkers.push(m);
   });
 }
@@ -1075,24 +1159,30 @@ function renderFiresStores(){
 function toggleFiresLayer(){
   renderFireMarkers();
   renderRoadMarkers();
-  renderFiresStores();
-  updateFiresStats();
+  drawProximityRings();
 }
 
 function updateFiresStats(){
   const noteCount=wildfireData.filter(f=>f.attributes.FIRE_OF_NOTE_IND==='Y').length;
+  const inFireRing=stores.filter(s=>{if(!s.latitude||!s.longitude)return false;const p=storeProximityInfo(s.latitude,s.longitude);return p&&p.type==='fire';}).length;
+  const inRoadRing=stores.filter(s=>{if(!s.latitude||!s.longitude)return false;const p=storeProximityInfo(s.latitude,s.longitude);return p&&p.type==='road';}).length;
+  const km=(document.getElementById('proximityRadius')||{value:'25'}).value||25;
   document.getElementById('firesStats').innerHTML=
     `<span>&#128293; Active Fires: <strong style="color:#c0392b">${wildfireData.length}</strong></span>`+
     (noteCount?`<span>Fires of Note: <strong style="color:#c0392b">${noteCount}</strong></span>`:'')+
     `<span>&#128690; Road Events: <strong style="color:#e67e22">${roadMarkers.length}</strong></span>`+
-    `<span>Stores: <strong style="color:#1a237e">${firesStoreMarkers.length}</strong></span>`+
+    (inFireRing?`<span>Stores within ${km}km of fire: <strong style="color:#ff6f00">${inFireRing}</strong></span>`:'')+
+    (inRoadRing?`<span>Stores within ${km}km of road event: <strong style="color:#f39c12">${inRoadRing}</strong></span>`:'')+
     `<span style="color:#aaa;font-size:.78rem">Updated ${new Date().toLocaleTimeString()}</span>`;
 }
 
 async function refreshFiresMap(){
   wildfireData=[];roadEventData=[];
+  if(fireRingLayer){firesMap.removeLayer(fireRingLayer);fireRingLayer=null;}
+  if(roadRingLayer){firesMap.removeLayer(roadRingLayer);roadRingLayer=null;}
   document.getElementById('firesStats').textContent='Refreshing…';
   await Promise.all([fetchWildfires(),fetchRoadEvents()]);
+  drawProximityRings();
   renderFiresStores();
   updateFiresStats();
 }
