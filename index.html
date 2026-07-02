@@ -80,9 +80,10 @@ tr:hover{background:#f5f7ff}
 .login-box{background:#fff;border-radius:16px;padding:50px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:400px;width:90%}
 .login-box h1{color:#1a237e;font-size:1.6rem;margin-bottom:8px}
 .login-box p{color:#666;font-size:.9rem;margin-bottom:30px}
-.google-btn{display:inline-flex;align-items:center;gap:12px;background:#fff;border:2px solid #ddd;border-radius:8px;padding:12px 28px;cursor:pointer;font-size:1rem;font-weight:500;color:#333;transition:all .2s}
-.google-btn:hover{border-color:#4285f4;background:#f8f9ff;box-shadow:0 2px 8px rgba(66,133,244,.2)}
-.google-btn img{width:22px;height:22px}
+.login-field{width:100%;padding:11px 14px;border:1px solid #ddd;border-radius:8px;font-size:.95rem;margin-bottom:12px;outline:none;box-sizing:border-box;transition:border .2s}
+.login-field:focus{border-color:#1a237e}
+.login-submit{width:100%;padding:12px;background:linear-gradient(135deg,#1a237e,#0d47a1);color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+.login-submit:hover{opacity:.9}
 .app-content{display:none}
 @media(max-width:768px){
   .header{padding:14px}
@@ -103,11 +104,10 @@ tr:hover{background:#f5f7ff}
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
     <h1>BCLS Store Directory</h1>
-    <p>Sign in with your Google account to access the dashboard</p>
-    <button class="google-btn" onclick="signInWithGoogle()">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
-      Sign in with Google
-    </button>
+    <p>Sign in to access the dashboard</p>
+    <input class="login-field" type="email" id="loginEmail" placeholder="Email address" autocomplete="email">
+    <input class="login-field" type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')signInWithEmail()">
+    <button class="login-submit" onclick="signInWithEmail()">Sign In</button>
     <p id="loginError" style="color:#c00;font-size:.8rem;margin-top:12px;min-height:1.2em"></p>
   </div>
 </div>
@@ -279,17 +279,15 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const provider = new firebase.auth.GoogleAuthProvider();
-
-function signInWithGoogle(){
+function signInWithEmail(){
+  var email=document.getElementById("loginEmail").value.trim();
+  var password=document.getElementById("loginPassword").value;
   var errDiv=document.getElementById("loginError");
+  if(!email||!password){if(errDiv)errDiv.textContent="Please enter your email and password.";return;}
   if(errDiv)errDiv.textContent="Signing in...";
-  auth.signInWithPopup(provider).then(function(result){
-    if(errDiv)errDiv.textContent="";
-  }).catch(function(err){
-    console.error("Popup error:",err);
-    if(errDiv)errDiv.textContent="Popup blocked. Trying redirect...";
-    auth.signInWithRedirect(provider);
+  auth.signInWithEmailAndPassword(email,password).catch(function(err){
+    console.error("Sign-in error:",err);
+    if(errDiv)errDiv.textContent="Incorrect email or password. Please try again.";
   });
 }
 function signOutUser(){
