@@ -634,18 +634,24 @@ function renderPowerOutages(){
     const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:#f1c40f;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:${sz-6}px">&#9889;</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     const dateOff=o.dateOff?new Date(o.dateOff).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'Unknown';
     const etr=o.showEta&&o.crewEta?new Date(o.crewEta).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):(o.showEtr?'TBD':'Unknown');
-    const popup=`<div style="font-family:Segoe UI,Arial;min-width:210px">
-      <strong style="color:#c8a800;font-size:1rem">&#9889; Power Outage</strong>
-      <hr style="margin:6px 0;border:none;border-top:1px solid #eee">
-      <span style="color:#555">Municipality:</span> <strong>${o.municipality||'N/A'}</strong><br>
-      <span style="color:#555">Area:</span> ${o.area||'N/A'}<br>
-      <span style="color:#555">Cause:</span> ${o.cause||'Unknown'}<br>
-      <span style="color:#555">Customers out:</span> <strong style="color:#e67e22">${customers.toLocaleString()}</strong><br>
-      <span style="color:#555">Crew:</span> ${o.crewStatusDescription||o.crewStatus||'N/A'}<br>
-      <span style="color:#555">Since:</span> ${dateOff}<br>
-      <span style="color:#555">ETR:</span> ${etr}
-    </div>`;
-    const m=L.marker([o.latitude,o.longitude],{icon}).bindPopup(popup,{maxWidth:300});
+    const radiusKm=parseInt((document.getElementById('proximityRadius')||{value:'25'}).value)||25;
+    const nearbyStores=stores.filter(s=>s.latitude&&s.longitude).map(s=>({s,d:L.latLng(o.latitude,o.longitude).distanceTo(L.latLng(s.latitude,s.longitude))})).filter(x=>x.d<=radiusKm*1000).sort((a,b)=>a.d-b.d).slice(0,5);
+    const storeRows=nearbyStores.length?nearbyStores.map(x=>'<tr><td style="padding:3px 6px;font-weight:600;color:#1a237e">#'+x.s.store_num+'</td><td style="padding:3px 6px">'+x.s.name+'</td><td style="padding:3px 6px;color:#555">'+x.s.city+'</td><td style="padding:3px 6px;color:#888;white-space:nowrap">'+(x.d/1000).toFixed(1)+' km</td></tr>').join(''):'<tr><td colspan="4" style="padding:6px;color:#999">No stores within '+radiusKm+' km</td></tr>';
+    const popup='<div style="font-family:Segoe UI,Arial;min-width:240px">'
+      +'<strong style="color:#c8a800;font-size:1rem">&#9889; Power Outage</strong>'
+      +'<hr style="margin:6px 0;border:none;border-top:1px solid #eee">'
+      +'<span style="color:#555">Municipality:</span> <strong>'+(o.municipality||'N/A')+'</strong><br>'
+      +'<span style="color:#555">Area:</span> '+(o.area||'N/A')+'<br>'
+      +'<span style="color:#555">Cause:</span> '+(o.cause||'Unknown')+'<br>'
+      +'<span style="color:#555">Customers out:</span> <strong style="color:#e67e22">'+customers.toLocaleString()+'</strong><br>'
+      +'<span style="color:#555">Crew:</span> '+(o.crewStatusDescription||o.crewStatus||'N/A')+'<br>'
+      +'<span style="color:#555">Since:</span> '+dateOff+'<br>'
+      +'<span style="color:#555">ETR:</span> '+etr
+      +'<hr style="margin:8px 0;border:none;border-top:1px solid #eee">'
+      +'<strong style="color:#1a237e;font-size:.85rem">Nearby Stores (within '+radiusKm+' km)</strong>'
+      +'<table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:.8rem">'+storeRows+'</table>'
+      +'</div>';
+    const m=L.marker([o.latitude,o.longitude],{icon}).bindPopup(popup,{maxWidth:340});
     m.addTo(firesMap);outageMarkers.push(m);
     if(o.polygon&&o.polygon.length>=6){
       const latlngs=[];
