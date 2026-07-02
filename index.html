@@ -844,7 +844,7 @@ function updateFiresStats(){
     `<span>&#128293; Active Fires: <strong style="color:#c0392b">${wildfireData.length}</strong></span>`+
     (noteCount?`<span>Fires of Note: <strong style="color:#c0392b">${noteCount}</strong></span>`:'')+
     `<span>&#128690; Road Events: <strong style="color:#e67e22">${roadMarkers.length}</strong></span>`+
-    `<span>&#9889; Outages: <strong style="color:#c8a800">${outageData.length}</strong>${totalCustomers?` (${totalCustomers.toLocaleString()} customers)`:\'\'}  </span>`+
+    `<span>&#9889; Outages: <strong style="color:#c8a800">${outageData.length}</strong>${totalCustomers?" ("+totalCustomers.toLocaleString()+" customers)":""}</span>`+
     (inFireRing?`<span>Stores within ${km}km of fire: <strong style="color:#ff6f00">${inFireRing}</strong></span>`:'')+
     (inRoadRing?`<span>Stores within ${km}km of road event: <strong style="color:#f39c12">${inRoadRing}</strong></span>`:'')+
     (inOutageRing?`<span>Stores within ${km}km of outage: <strong style="color:#c8a800">${inOutageRing}</strong></span>`:'')+
