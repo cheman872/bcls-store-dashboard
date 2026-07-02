@@ -211,6 +211,7 @@ tr:hover{background:#f5f7ff}
       <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showStores" checked onchange="toggleFiresLayer()"> Stores</label>
       <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showFires" checked onchange="toggleFiresLayer()"> Active Wildfires</label>
       <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showRoads" checked onchange="toggleFiresLayer()"> Road Events</label>
+      <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showOutages" checked onchange="toggleFiresLayer()"> &#9889; Power Outages</label>
       <label style="margin-left:12px">Road Severity:</label>
       <select id="roadSeverityFilter" onchange="renderRoadMarkers()"><option value="">All</option><option value="MAJOR">Major</option><option value="MODERATE">Moderate</option><option value="MINOR">Minor</option></select>
       <label style="margin-left:8px">Road Type:</label>
@@ -219,6 +220,7 @@ tr:hover{background:#f5f7ff}
       <span style="margin-left:14px;padding-left:14px;border-left:1px solid #ddd;font-weight:700;color:#1a237e;font-size:.85rem">Proximity Rings:</span>
       <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showFireRings" checked onchange="drawProximityRings()"> Fires</label>
       <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showRoadRings" onchange="drawProximityRings()"> Roads</label>
+      <label style="font-size:.85rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="showOutageRings" onchange="drawProximityRings()"> Outages</label>
       <select id="proximityRadius" onchange="drawProximityRings()" style="padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:.85rem">
         <option value="10">10 km</option>
         <option value="25" selected>25 km</option>
@@ -239,11 +241,15 @@ tr:hover{background:#f5f7ff}
         <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#e74c3c;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Incident/Closure</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#f39c12;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Construction</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:10px;height:10px;border-radius:50%;background:#2980b9;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Weather Condition</div>
+        <div style="font-weight:700;color:#888;font-size:.75rem;margin:8px 0 2px">Power Outages (BC Hydro)</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#f1c40f;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Active Outage</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:30px;height:10px;background:rgba(241,196,15,.25);border:1px solid #f1c40f;flex-shrink:0;border-radius:2px"></div>Affected Area</div>
         <div style="font-weight:700;color:#888;font-size:.75rem;margin:8px 0 2px">Stores</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:#1a237e;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Liquor (BCLS)</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:#1b5e20;border:2px solid rgba(0,0,0,.15);flex-shrink:0"></div>Cannabis (BCCS)</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:13px;height:13px;border-radius:50%;background:#ff6f00;border:2px solid #fff;box-shadow:0 0 0 2px #ff6f00;flex-shrink:0"></div>In fire ring</div>
         <div style="display:flex;align-items:center;gap:6px"><div style="width:11px;height:11px;border-radius:50%;background:#f39c12;border:2px solid #fff;box-shadow:0 0 0 2px #f39c12;flex-shrink:0"></div>In road ring</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:11px;height:11px;border-radius:50%;background:#f1c40f;border:2px solid #fff;box-shadow:0 0 0 2px #c8a800;flex-shrink:0"></div>In outage ring</div>
       </div>
     </div>
   </div>
@@ -545,8 +551,8 @@ function crimeMapReset(){
   document.getElementById("crimeMapResetBtn").style.display="none";
 }
 // ========== BC Fires & Roads Map ==========
-let firesMap=null,firesStoreMarkers=[],fireMarkers=[],roadMarkers=[];
-let wildfireData=[],roadEventData=[];
+let firesMap=null,firesStoreMarkers=[],fireMarkers=[],roadMarkers=[],outageMarkers=[],outagePolyLayers=[];
+let wildfireData=[],roadEventData=[],outageData=[];
 
 function fireMarkerColor(status,isNote){
   if(isNote==='Y'||status==='Out of Control')return'#8B0000';
@@ -564,7 +570,7 @@ async function initFiresMap(){
   if(firesMap){firesMap.invalidateSize();return;}
   firesMap=L.map('firesMapContainer').setView([53.5,-125],5);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap | BC Wildfire Service | DriveBC',maxZoom:18}).addTo(firesMap);
-  await Promise.all([fetchWildfires(),fetchRoadEvents()]);
+  await Promise.all([fetchWildfires(),fetchRoadEvents(),fetchPowerOutages()]);
   drawProximityRings();
   updateFiresStats();
 }
@@ -596,6 +602,59 @@ async function fetchRoadEvents(){
     console.warn('Road events fetch failed:',e);
     roadEventData=[];
   }
+}
+
+async function fetchPowerOutages(){
+  // Try direct BC Hydro endpoint first, fall back to GitHub mirror (updated every 15 min)
+  const urls=[
+    'https://www.bchydro.com/power-outages/app/outages-map-data.json',
+    'https://raw.githubusercontent.com/outages/bchydro-outages/main/bchydro-outages.json'
+  ];
+  for(const url of urls){
+    try{
+      const r=await fetch(url);if(!r.ok)continue;
+      const d=await r.json();
+      outageData=Array.isArray(d)?d.filter(o=>!o.dateOn):[];
+      renderPowerOutages();return;
+    }catch(e){console.warn('Outage fetch failed:',url,e);}
+  }
+  outageData=[];
+}
+
+function renderPowerOutages(){
+  if(!firesMap)return;
+  outageMarkers.forEach(m=>firesMap.removeLayer(m));outageMarkers=[];
+  outagePolyLayers.forEach(p=>firesMap.removeLayer(p));outagePolyLayers=[];
+  const show=document.getElementById('showOutages');
+  if(show&&!show.checked)return;
+  outageData.forEach(o=>{
+    if(!o.latitude||!o.longitude)return;
+    const customers=o.numCustomersOut||0;
+    const sz=Math.max(10,Math.min(22,Math.sqrt(customers)*1.4+9));
+    const icon=L.divIcon({className:'',html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:#f1c40f;border:2px solid rgba(255,255,255,.9);box-shadow:0 1px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:${sz-6}px">&#9889;</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    const dateOff=o.dateOff?new Date(o.dateOff).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'Unknown';
+    const etr=o.showEta&&o.crewEta?new Date(o.crewEta).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):(o.showEtr?'TBD':'Unknown');
+    const popup=`<div style="font-family:Segoe UI,Arial;min-width:210px">
+      <strong style="color:#c8a800;font-size:1rem">&#9889; Power Outage</strong>
+      <hr style="margin:6px 0;border:none;border-top:1px solid #eee">
+      <span style="color:#555">Municipality:</span> <strong>${o.municipality||'N/A'}</strong><br>
+      <span style="color:#555">Area:</span> ${o.area||'N/A'}<br>
+      <span style="color:#555">Cause:</span> ${o.cause||'Unknown'}<br>
+      <span style="color:#555">Customers out:</span> <strong style="color:#e67e22">${customers.toLocaleString()}</strong><br>
+      <span style="color:#555">Crew:</span> ${o.crewStatusDescription||o.crewStatus||'N/A'}<br>
+      <span style="color:#555">Since:</span> ${dateOff}<br>
+      <span style="color:#555">ETR:</span> ${etr}
+    </div>`;
+    const m=L.marker([o.latitude,o.longitude],{icon}).bindPopup(popup,{maxWidth:300});
+    m.addTo(firesMap);outageMarkers.push(m);
+    if(o.polygon&&o.polygon.length>=6){
+      const latlngs=[];
+      for(let i=0;i<o.polygon.length;i+=2)latlngs.push([o.polygon[i+1],o.polygon[i]]);
+      const poly=L.polygon(latlngs,{color:'#c8a800',fillColor:'#f1c40f',fillOpacity:0.18,weight:1.5});
+      poly.addTo(firesMap);outagePolyLayers.push(poly);
+    }
+  });
+  updateFiresStats();
 }
 
 function renderFireMarkers(){
@@ -687,6 +746,16 @@ function storeProximityInfo(lat,lng){
     }
     if(best)return best;
   }
+  const outageRings=document.getElementById('showOutageRings');
+  if(outageRings&&outageRings.checked){
+    let best=null,bestD=Infinity;
+    for(const o of outageData){
+      if(!o.latitude||!o.longitude)continue;
+      const d=pt.distanceTo(L.latLng(o.latitude,o.longitude));
+      if(d<=radiusM&&d<bestD){bestD=d;best={type:'outage',km:Math.round(d/100)/10,name:o.area||o.municipality||'Outage',customers:o.numCustomersOut||0};}
+    }
+    if(best)return best;
+  }
   return null;
 }
 
@@ -715,6 +784,17 @@ function drawProximityRings(){
     });
     roadRingLayer.addTo(firesMap);
   }
+  const outageRings=document.getElementById('showOutageRings');
+  if(!outageRingLayer){outageRingLayer=null;}
+  if(typeof outageRingLayer!=='undefined'&&outageRingLayer){firesMap.removeLayer(outageRingLayer);outageRingLayer=null;}
+  if(outageRings&&outageRings.checked){
+    window.outageRingLayer=L.layerGroup();
+    outageData.forEach(o=>{
+      if(!o.latitude||!o.longitude)return;
+      L.circle([o.latitude,o.longitude],{radius:radiusM,color:'#c8a800',fillColor:'#f1c40f',fillOpacity:0.04,weight:1,dashArray:'2 5'}).addTo(window.outageRingLayer);
+    });
+    window.outageRingLayer.addTo(firesMap);
+  }
   renderFiresStores();
   updateFiresStats();
 }
@@ -733,6 +813,9 @@ function renderFiresStores(){
     }else if(prox&&prox.type==='road'){
       sz=11;color='#f39c12';ring='2px solid #fff,0 0 0 2px #f39c12';
       popExtra=`<div style="margin-top:6px;padding:6px 8px;background:#fff8e1;border-radius:5px;font-size:.82rem"><strong style="color:#e67e22">&#128690; ${prox.km} km</strong> from <em>${prox.name}</em></div>`;
+    }else if(prox&&prox.type==='outage'){
+      sz=11;color='#c8a800';ring='2px solid #fff,0 0 0 2px #c8a800';
+      popExtra=`<div style="margin-top:6px;padding:6px 8px;background:#fffde7;border-radius:5px;font-size:.82rem"><strong style="color:#c8a800">&#9889; ${prox.km} km</strong> from outage — <em>${prox.name}</em>${prox.customers?' ('+prox.customers.toLocaleString()+' customers out)':''}</div>`;
     }else{
       sz=8;color=s.store_type==='cannabis'?'#1b5e20':'#1a237e';ring='2px solid rgba(255,255,255,.9)';
     }
@@ -746,6 +829,7 @@ function renderFiresStores(){
 function toggleFiresLayer(){
   renderFireMarkers();
   renderRoadMarkers();
+  renderPowerOutages();
   drawProximityRings();
 }
 
@@ -753,22 +837,27 @@ function updateFiresStats(){
   const noteCount=wildfireData.filter(f=>f.attributes.FIRE_OF_NOTE_IND==='Y').length;
   const inFireRing=stores.filter(s=>{if(!s.latitude||!s.longitude)return false;const p=storeProximityInfo(s.latitude,s.longitude);return p&&p.type==='fire';}).length;
   const inRoadRing=stores.filter(s=>{if(!s.latitude||!s.longitude)return false;const p=storeProximityInfo(s.latitude,s.longitude);return p&&p.type==='road';}).length;
+  const inOutageRing=stores.filter(s=>{if(!s.latitude||!s.longitude)return false;const p=storeProximityInfo(s.latitude,s.longitude);return p&&p.type==='outage';}).length;
+  const totalCustomers=outageData.reduce((a,o)=>a+(o.numCustomersOut||0),0);
   const km=(document.getElementById('proximityRadius')||{value:'25'}).value||25;
   document.getElementById('firesStats').innerHTML=
     `<span>&#128293; Active Fires: <strong style="color:#c0392b">${wildfireData.length}</strong></span>`+
     (noteCount?`<span>Fires of Note: <strong style="color:#c0392b">${noteCount}</strong></span>`:'')+
     `<span>&#128690; Road Events: <strong style="color:#e67e22">${roadMarkers.length}</strong></span>`+
+    `<span>&#9889; Outages: <strong style="color:#c8a800">${outageData.length}</strong>${totalCustomers?` (${totalCustomers.toLocaleString()} customers)`:\'\'}  </span>`+
     (inFireRing?`<span>Stores within ${km}km of fire: <strong style="color:#ff6f00">${inFireRing}</strong></span>`:'')+
     (inRoadRing?`<span>Stores within ${km}km of road event: <strong style="color:#f39c12">${inRoadRing}</strong></span>`:'')+
+    (inOutageRing?`<span>Stores within ${km}km of outage: <strong style="color:#c8a800">${inOutageRing}</strong></span>`:'')+
     `<span style="color:#aaa;font-size:.78rem">Updated ${new Date().toLocaleTimeString()}</span>`;
 }
 
 async function refreshFiresMap(){
-  wildfireData=[];roadEventData=[];
+  wildfireData=[];roadEventData=[];outageData=[];
   if(fireRingLayer){firesMap.removeLayer(fireRingLayer);fireRingLayer=null;}
   if(roadRingLayer){firesMap.removeLayer(roadRingLayer);roadRingLayer=null;}
+  if(window.outageRingLayer){firesMap.removeLayer(window.outageRingLayer);window.outageRingLayer=null;}
   document.getElementById('firesStats').textContent='Refreshing…';
-  await Promise.all([fetchWildfires(),fetchRoadEvents()]);
+  await Promise.all([fetchWildfires(),fetchRoadEvents(),fetchPowerOutages()]);
   drawProximityRings();
   renderFiresStores();
   updateFiresStats();
